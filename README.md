@@ -13,6 +13,7 @@
 - 照片详情、键盘切换、手机滑动、收藏、留言和受控原图下载
 - 华丽洗牌随机回忆和模拟相机显影
 - 我的收藏、人物标记确认、隐私申请，以及动画和声音偏好
+- 已审核成员可向私有 R2 上传照片，照片以草稿进入管理员审核后再发布
 - 管理员概览、可重试批量上传、成员/隐私审核、照片故事与权限、邀请码和操作记录
 - Supabase PostgreSQL 迁移、RLS、邀请兑换事务函数
 - `LocalMockStorageAdapter` 与 `R2StorageAdapter`
@@ -138,10 +139,7 @@ where email = '你的管理员邮箱';
 ```json
 [
   {
-    "AllowedOrigins": [
-      "http://localhost:3000",
-      "https://你的域名.example"
-    ],
+    "AllowedOrigins": ["http://localhost:3000", "https://你的域名.example"],
     "AllowedMethods": ["GET", "PUT", "HEAD"],
     "AllowedHeaders": ["Content-Type"],
     "ExposeHeaders": ["ETag"],
