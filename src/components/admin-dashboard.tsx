@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
+import { AdminOverview } from "@/components/admin-overview";
 import type { AdminDashboardData, AdminInviteView } from "@/lib/admin-data";
 import type { Photo, PhotoVisibility } from "@/types/domain";
 
@@ -21,7 +22,7 @@ type QueueItem = {
   retryable?: boolean;
 };
 const tabLabels: Record<Tab, string> = {
-  overview: "概览",
+  overview: "班级回忆管理",
   upload: "批量上传",
   photos: "照片管理",
   members: "成员审核",
@@ -54,10 +55,12 @@ export function AdminDashboard({
   initialData,
   initialTab = "overview",
   demoMode = false,
+  adminName = "管理员",
 }: {
   initialData: AdminDashboardData;
   initialTab?: string;
   demoMode?: boolean;
+  adminName?: string;
 }) {
   const tab = initialTab as Tab;
   const [photos, setPhotos] = useState(initialData.photos);
@@ -372,15 +375,39 @@ export function AdminDashboard({
     <>
       <header className="admin-topbar">
         <div>
-          <p>CLASS ARCHIVE / ADMIN</p>
+          <p>{tab === "overview" ? "在这里守护每一张照片与每一段回忆" : "CLASS ARCHIVE / ADMIN"}</p>
           <h1>{tabLabels[tab]}</h1>
         </div>
         <div>
-          <span className="admin-demo-dot" />{" "}
-          {demoMode ? "演示管理台" : "私有云管理台"}
+          <Link className="admin-topbar-return" href="/memories">
+            ← 返回班级相册
+          </Link>
+          <span className="admin-cloud-state">
+            <i className="admin-demo-dot" />
+            {demoMode ? "演示数据" : "R2 私有存储"}
+          </span>
+          <span className="admin-topbar-user" aria-label={`当前管理员 ${adminName}`}>
+            <i>{adminName.slice(0, 1)}</i>
+            <span>
+              <b>{adminName}</b>
+              <small>管理员</small>
+            </span>
+          </span>
         </div>
       </header>
       {tab === "overview" && (
+        <AdminOverview
+          photos={photos}
+          members={members}
+          invites={invites}
+          logs={initialData.logs}
+          privacyRequests={privacyRequests}
+          onUpdatePhoto={updatePhoto}
+          onReviewMember={reviewMember}
+          onReviewPrivacyRequest={reviewPrivacyRequest}
+        />
+      )}
+      {false && tab === "overview" && (
         <section id="overview" className="admin-section">
           <div className="admin-welcome">
             <div>

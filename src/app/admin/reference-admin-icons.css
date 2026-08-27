@@ -1,0 +1,16 @@
+.admin-nav-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+@media (max-width: 900px) {
+  .admin-nav-icon svg {
+    width: 19px;
+    height: 19px;
+  }
+}

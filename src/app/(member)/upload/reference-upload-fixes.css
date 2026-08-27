@@ -1,0 +1,40 @@
+@media (max-width: 760px) {
+  .upload-reference-layout .member-upload-fields label > span {
+    font-size: 12px;
+  }
+
+  .upload-reference-layout .member-upload-fields label > span small {
+    font-size: 11px;
+  }
+
+  .upload-reference-layout .member-upload-fields input,
+  .upload-reference-layout .member-upload-fields textarea {
+    font-size: 16px;
+  }
+
+  .upload-reference-layout .member-upload-tags {
+    display: grid;
+  }
+
+  .upload-reference-layout .upload-tag-suggestions {
+    display: flex;
+  }
+
+  .upload-reference-layout .upload-tag-suggestions button,
+  .upload-reference-layout .upload-tag-suggestions > span {
+    min-height: 30px;
+    font-size: 11px;
+  }
+
+  .upload-reference-layout .member-upload-remove {
+    right: auto;
+    left: calc(40% - 31px);
+  }
+}
+
+@media (max-width: 390px) {
+  .upload-reference-layout .member-upload-remove {
+    right: 17px;
+    left: auto;
+  }
+}

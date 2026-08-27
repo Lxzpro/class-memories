@@ -1,0 +1,6 @@
+@media (max-width: 760px) {
+  .upload-reference-layout .member-upload-preview {
+    width: 100%;
+    max-width: 100%;
+  }
+}

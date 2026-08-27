@@ -1,0 +1,27 @@
+@media (min-width: 901px) {
+  .admin-sidebar-footer::before {
+    content: "❧\A\A不按时间，\A只按记忆。";
+    display: block;
+    padding: 4px 8px 10px;
+    color: #8fa06c;
+    font-family: var(--font-serif, "Songti SC", serif);
+    font-size: 14px;
+    line-height: 1.75;
+    white-space: pre;
+  }
+
+  .admin-sidebar-footer::after {
+    content: "";
+    width: 74px;
+    height: 1px;
+    position: absolute;
+    bottom: 104px;
+    left: 41px;
+    background: linear-gradient(90deg, #aebd82, transparent);
+    transform: rotate(-14deg);
+  }
+
+  .admin-sidebar .admin-user {
+    display: none;
+  }
+}

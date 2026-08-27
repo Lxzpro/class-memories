@@ -1,0 +1,54 @@
+/* Hidden responsive variants still need positioned parents for Next/Image fill. */
+.mobile-featured-memory > div,
+.mobile-memory-grid > a > div {
+  position: relative;
+}
+
+.mobile-memory-more {
+  grid-column: 1 / -1;
+  min-height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(75, 139, 228, 0.18);
+  border-radius: 16px;
+  color: #4687df;
+  background: rgba(244, 248, 255, 0.86);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (min-width: 901px) {
+  .mobile-memory-more {
+    display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .member-sidebar .brand > .brand-mark {
+    width: 32px;
+    height: 32px;
+    display: block;
+    flex: 0 0 32px;
+  }
+
+  .member-sidebar .brand > span:not(.brand-mark) {
+    display: grid;
+  }
+}
+
+@media (max-width: 760px) {
+  .profile-reference-tabs {
+    display: grid;
+    grid-template-columns: 1.2fr 0.9fr 0.9fr 1.4fr;
+    gap: 2px;
+    overflow: visible;
+    padding-inline: 0;
+  }
+
+  .profile-reference-tabs button {
+    min-width: 0;
+    padding-inline: 2px;
+    font-size: 12px;
+  }
+}

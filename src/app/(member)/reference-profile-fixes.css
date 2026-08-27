@@ -1,0 +1,103 @@
+.profile-reference-tabs button {
+  font-size: 15px;
+}
+
+.profile-photo-library > header h2,
+.profile-privacy-card .privacy-request-heading b,
+.profile-preference-card .settings-heading h2 {
+  font-size: 21px;
+}
+
+.profile-photo-library > header p,
+.profile-photo-library > header > span,
+.profile-reference-hero p {
+  font-size: 12px;
+}
+
+.profile-photo-grid h3 {
+  font-size: 14px;
+}
+
+.profile-photo-grid p {
+  font-size: 11px;
+}
+
+.profile-reference-aside {
+  max-height: calc(100svh - 122px);
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(21, 41, 69, 0.18) transparent;
+  scrollbar-width: thin;
+}
+
+.profile-privacy-card {
+  margin: 0;
+  overflow: visible;
+}
+
+.profile-privacy-card .privacy-photo-preview {
+  padding: 0;
+  box-shadow: none;
+}
+
+.profile-privacy-card .privacy-request-heading span,
+.profile-privacy-card .privacy-photo-preview p,
+.profile-photo-select,
+.privacy-kind-options legend,
+.privacy-reason-options legend,
+.profile-privacy-card .privacy-note {
+  font-size: 12px;
+}
+
+.profile-privacy-card .privacy-photo-preview b,
+.privacy-kind-options b,
+.profile-preference-card .setting-list label span b {
+  font-size: 14px;
+}
+
+.profile-privacy-card .privacy-photo-preview > a span,
+.privacy-kind-options small,
+.profile-preference-card .setting-list label span small {
+  font-size: 11px;
+}
+
+.profile-photo-select select,
+.profile-privacy-card textarea {
+  font-size: 14px;
+}
+
+.privacy-reason-options button {
+  min-height: 36px;
+  font-size: 12px;
+}
+
+.profile-privacy-card > button[type="submit"] {
+  width: 100%;
+  justify-self: stretch;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.profile-preference-card .setting-list label {
+  margin: 0;
+  border-top: 0;
+  border-radius: 0;
+}
+
+@media (max-width: 760px) {
+  .profile-reference-aside {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .profile-reference-layout.privacy-active .profile-reference-aside {
+    order: -1;
+  }
+
+  .profile-photo-select select,
+  .profile-privacy-card textarea {
+    font-size: 16px;
+  }
+}
