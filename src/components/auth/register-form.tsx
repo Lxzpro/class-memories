@@ -1,23 +1,52 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+type RegisterResponse = {
+  emailConfirmationRequired?: boolean;
+  error?: string;
+  next?: string;
+};
 
 export function RegisterForm() {
   const router = useRouter();
   const [form, setForm] = useState({ displayName: "", email: "", password: "" });
-  const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setLoading(true); setError("");
+    event.preventDefault();
+    setLoading(true);
+    setError("");
     try {
       const response = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-      const result = await response.json();
+      const result = await response.json() as RegisterResponse;
       if (!response.ok) throw new Error(result.error || "注册失败");
-      router.push(result.next); router.refresh();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "注册失败"); }
-    finally { setLoading(false); }
+      if (result.emailConfirmationRequired) {
+        setConfirmationEmail(form.email);
+        return;
+      }
+      router.push(result.next || "/pending");
+      router.refresh();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "注册失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (confirmationEmail) {
+    return (
+      <div className="auth-form" aria-live="polite">
+        <p className="form-success">账号已经创建，确认邮件已发送至 {confirmationEmail}。</p>
+        <p className="field-note">请点击邮件中的“确认邮箱并提交审核”。确认成功后，你会进入班级成员审核页面；如果没有看到邮件，也请检查垃圾邮件。</p>
+        <Link className="form-submit" href="/login">返回登录<span aria-hidden="true">→</span></Link>
+      </div>
+    );
   }
 
   return (

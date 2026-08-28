@@ -10,7 +10,8 @@ export async function POST(request: Request) {
   if (!DEMO_MODE) {
     const supabase = await createSupabaseServerClient();
     const origin = new URL(request.url).origin;
-    await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo: `${origin}/auth/callback?next=/reset-password` });
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo: origin + "/auth/callback?next=/reset-password" });
+    if (error) console.error("Password recovery email could not be sent:", error.message);
   }
-  return Response.json({ ok: true, message: "如果账号存在，重置邮件将会发送。" });
+  return Response.json({ ok: true, message: "如果这个邮箱已注册，我们会发送一封重置邮件，请留意收件箱和垃圾邮件。" });
 }

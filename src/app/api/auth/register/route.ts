@@ -25,7 +25,15 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.signUp({ email: parsed.data.email, password: parsed.data.password, options: { data: { display_name: parsed.data.displayName } } });
+  const origin = new URL(request.url).origin;
+  const { data, error } = await supabase.auth.signUp({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    options: {
+      data: { display_name: parsed.data.displayName },
+      emailRedirectTo: origin + "/auth/callback?next=/pending",
+    },
+  });
   if (error || !data.user) return Response.json({ error: error?.message === "User already registered" ? "这个邮箱已经注册。" : "注册失败，请稍后重试。" }, { status: 400 });
 
   const admin = await createSupabaseAdminClient();
