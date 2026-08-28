@@ -39,32 +39,40 @@ async function signPhoto(photo: Photo): Promise<Photo> {
   return { ...photo, thumbnailUrl, previewUrl };
 }
 
-async function applyDownloadConsent(user: Profile, photos: Photo[]): Promise<Photo[]> {
+function applyDemoDownloadConsent(user: Profile, photos: Photo[]): Photo[] {
   if (user.role === "admin" || photos.length === 0) return photos;
-  if (DEMO_MODE) {
-    const profiles = new Map(MOCK_PROFILES.map((profile) => [profile.id, profile]));
-    return photos.map((photo) => ({ ...photo, downloadAllowed: photo.downloadAllowed && photo.people.every((person) => profiles.get(person.id)?.allowOriginalDownload !== false) }));
-  }
+  const profiles = new Map(MOCK_PROFILES.map((profile) => [profile.id, profile]));
+  return photos.map((photo) => ({ ...photo, downloadAllowed: photo.downloadAllowed && photo.people.every((person) => profiles.get(person.id)?.allowOriginalDownload !== false) }));
+}
+
+async function getBlockedDownloadPhotoIds(user: Profile, photoIds?: string[]): Promise<Set<string>> {
+  if (user.role === "admin" || photoIds?.length === 0) return new Set();
   const admin = await createSupabaseAdminClient();
-  const { data } = await admin.from("photo_people").select("photo_id,profiles(allow_original_download)").in("photo_id", photos.map((photo) => photo.id));
-  const blocked = new Set((data ?? []).filter((row) => {
+  const query = admin.from("photo_people").select("photo_id,profiles(allow_original_download)");
+  const { data } = photoIds ? await query.in("photo_id", photoIds) : await query;
+  return new Set((data ?? []).filter((row) => {
     const related = row.profiles as unknown as { allow_original_download?: boolean } | Array<{ allow_original_download?: boolean }> | null;
     const profile = Array.isArray(related) ? related[0] : related;
     return profile?.allow_original_download === false;
   }).map((row) => String(row.photo_id)));
-  return photos.map((photo) => ({ ...photo, downloadAllowed: photo.downloadAllowed && !blocked.has(photo.id) }));
+}
+
+function applyDownloadConsent(user: Profile, photos: Photo[], blockedPhotoIds: Set<string>): Photo[] {
+  if (user.role === "admin" || photos.length === 0) return photos;
+  return photos.map((photo) => ({ ...photo, downloadAllowed: photo.downloadAllowed && !blockedPhotoIds.has(photo.id) }));
 }
 
 export async function getVisiblePhotos(user: Profile): Promise<Photo[]> {
-  if (DEMO_MODE) return applyDownloadConsent(user, filterVisiblePhotos(user, MOCK_PHOTOS));
+  if (DEMO_MODE) return applyDemoDownloadConsent(user, filterVisiblePhotos(user, MOCK_PHOTOS));
   const supabase = await createSupabaseServerClient();
-  const [{ data, error }, { data: directory }] = await Promise.all([
+  const [{ data, error }, { data: directory }, blockedPhotoIds] = await Promise.all([
     supabase.from("photos").select("*, photo_people(user_id, consent_status), photo_access(user_id), photo_tags(tags(name))").eq("review_status", "published").order("created_at", { ascending: false }),
     supabase.from("member_directory").select("id,display_name"),
+    getBlockedDownloadPhotoIds(user),
   ]);
   if (error) throw new Error("无法读取照片列表");
   const names = new Map((directory ?? []).map((row) => [String(row.id), String(row.display_name)]));
-  const photos = await applyDownloadConsent(user, (data ?? []).map((row) => mapPhoto(row as RelatedRow, names)));
+  const photos = applyDownloadConsent(user, (data ?? []).map((row) => mapPhoto(row as RelatedRow, names)), blockedPhotoIds);
   return Promise.all(photos.map(signPhoto));
 }
 
@@ -72,16 +80,17 @@ export async function getVisiblePhoto(user: Profile, id: string): Promise<Photo 
   if (DEMO_MODE) {
     const photo = MOCK_PHOTOS.find((item) => item.id === id) ?? null;
     if (!photo || !canViewPhoto(user, photo)) return null;
-    return (await applyDownloadConsent(user, [photo]))[0];
+    return applyDemoDownloadConsent(user, [photo])[0];
   }
   const supabase = await createSupabaseServerClient();
-  const [{ data }, { data: directory }] = await Promise.all([
+  const [{ data }, { data: directory }, blockedPhotoIds] = await Promise.all([
     supabase.from("photos").select("*, photo_people(user_id, consent_status), photo_access(user_id), photo_tags(tags(name))").eq("id", id).maybeSingle(),
     supabase.from("member_directory").select("id,display_name"),
+    getBlockedDownloadPhotoIds(user, [id]),
   ]);
   const names = new Map((directory ?? []).map((row) => [String(row.id), String(row.display_name)]));
   if (!data) return null;
-  const [photo] = await applyDownloadConsent(user, [mapPhoto(data as RelatedRow, names)]);
+  const [photo] = applyDownloadConsent(user, [mapPhoto(data as RelatedRow, names)], blockedPhotoIds);
   return signPhoto(photo);
 }
 
@@ -94,9 +103,11 @@ export async function getFavoritePhotoIds(user: Profile): Promise<string[]> {
 }
 
 export async function getPhotoComments(user: Profile, photoId: string): Promise<PhotoComment[]> {
-  const photo = await getVisiblePhoto(user, photoId);
-  if (!photo) return [];
-  if (DEMO_MODE) return MOCK_COMMENTS.filter((comment) => comment.photoId === photoId && comment.status === "visible");
+  if (DEMO_MODE) {
+    const photo = MOCK_PHOTOS.find((item) => item.id === photoId);
+    if (!photo || !canViewPhoto(user, photo)) return [];
+    return MOCK_COMMENTS.filter((comment) => comment.photoId === photoId && comment.status === "visible");
+  }
   const supabase = await createSupabaseServerClient();
   const [{ data }, { data: directory }] = await Promise.all([
     supabase.from("comments").select("id, photo_id, user_id, content, status, created_at").eq("photo_id", photoId).eq("status", "visible").order("created_at"),

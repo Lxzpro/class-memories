@@ -37,7 +37,7 @@ export function LaAnalytics() {
     <Script
       id="LA_COLLECT"
       src="https://sdk.51.la/js-sdk-pro.min.js"
-      strategy="afterInteractive"
+      strategy="lazyOnload"
       charSet="UTF-8"
       onReady={initializeLaAnalytics}
     />
