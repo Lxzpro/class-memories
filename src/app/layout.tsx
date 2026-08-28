@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,5 +10,12 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
-  return <html lang="zh-CN" data-scroll-behavior="smooth"><body>{children}</body></html>;
+  return (
+    <html lang="zh-CN" data-scroll-behavior="smooth">
+      <body>
+        {children}
+        <SpeedInsights />
+      </body>
+    </html>
+  );
 }
