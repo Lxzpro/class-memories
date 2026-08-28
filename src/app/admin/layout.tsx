@@ -4,11 +4,12 @@ import { BrandLogo } from "@/components/brand-logo";
 import { AdminNavigation } from "@/components/admin-navigation";
 import "./admin.css";
 import "./admin-redesign.css";
-
 import "./reference-admin.css";
 import "./reference-admin-user.css";
 import "./reference-admin-note.css";
 import "./reference-admin-icons.css";
+import "../ui-ux-polish.css";
+
 export default async function AdminLayout({
   children,
 }: {

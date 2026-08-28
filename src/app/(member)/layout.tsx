@@ -6,6 +6,8 @@ import "./reference-detail-random.css";
 import "./reference-profile.css";
 import "./reference-profile-fixes.css";
 import "./reference-final-fixes.css";
+import "./mobile-navigation-fixes.css";
+import "../ui-ux-polish.css";
 
 export default async function MemberLayout({
   children,

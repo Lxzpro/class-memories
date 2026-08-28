@@ -1,0 +1,120 @@
+/* Shared interaction polish for the member and admin experiences. */
+:where(.member-shell, .admin-shell) {
+  --ui-focus-ring: rgba(65, 142, 232, 0.38);
+  --ui-focus-ink: #225f9f;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:where(.member-shell, .admin-shell) :where(a, button, input, textarea, select) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(.member-shell, .admin-shell) :where(a, button) {
+  touch-action: manipulation;
+}
+
+:where(.member-shell, .admin-shell)
+  :where(a, button, input, textarea, select):focus-visible {
+  outline: 3px solid var(--ui-focus-ring) !important;
+  outline-offset: 3px;
+}
+
+:where(.member-shell, .admin-shell) :where(button, input, textarea, select):disabled {
+  cursor: not-allowed;
+}
+
+.member-shell .member-notification {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.member-shell :where(.mobile-memory-search, .photo-search) input::placeholder,
+.member-shell :where(input, textarea)::placeholder {
+  color: #7a8593;
+  opacity: 1;
+}
+
+.member-shell :where(.member-main, .memory-board, .photos-page, .random-page, .profile-page, .member-upload-page),
+.admin-shell :where(.admin-main, .admin-section) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 760px) {
+  .member-shell .member-mobile-profile {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  .member-shell .member-main {
+    overflow-x: clip;
+    overscroll-behavior-y: contain;
+  }
+
+  .member-shell :where(input:not([type="checkbox"]):not([type="radio"]), textarea, select),
+  .admin-shell :where(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+    font-size: 16px !important;
+  }
+
+  .member-shell
+    :where(
+      .mobile-memory-filters button,
+      .tag-scroller button,
+      .mode-tabs button,
+      .random-trigger,
+      .skip-motion,
+      .load-more,
+      .modal-close,
+      .modal-arrow,
+      .detail-actions button,
+      .detail-actions a,
+      .comments form button,
+      .profile-photo-select,
+      .profile-reference-tabs button,
+      .profile-logout,
+      .privacy-request-form > button,
+      .pending-consents button
+    ) {
+    min-height: 44px;
+  }
+
+  .member-shell :where(.privacy-kind-options label, .privacy-reason-options label) {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .member-shell .profile-reference-tabs button {
+    min-width: 0;
+    line-height: 1.25;
+  }
+
+  .member-shell :where(.photo-modal, .detail-overview, .comment-list) {
+    overscroll-behavior: contain;
+  }
+
+  .admin-shell .admin-nav a,
+  .admin-shell :where(.review-actions button, .pending-photo-actions button, .privacy-overview-actions button) {
+    min-height: 44px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(.member-shell, .admin-shell) :where(a, button):not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.member-shell, .admin-shell),
+  :where(.member-shell, .admin-shell) *,
+  :where(.member-shell, .admin-shell) *::before,
+  :where(.member-shell, .admin-shell) *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

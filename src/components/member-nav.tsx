@@ -67,6 +67,7 @@ export function MemberNav({ admin = false }: { admin?: boolean }) {
             key={item.href}
             className={`${pathname === item.href ? "active" : ""}${item.icon === "upload" ? " upload-nav" : ""}`}
             href={item.href}
+            aria-current={pathname === item.href ? "page" : undefined}
           >
             <NavIcon name={item.icon} />
             <span>{item.label}</span>
@@ -88,6 +89,7 @@ export function MemberNav({ admin = false }: { admin?: boolean }) {
             key={item.href}
             className={pathname === item.href ? "active" : ""}
             href={item.href}
+            aria-current={pathname === item.href ? "page" : undefined}
           >
             <span aria-hidden="true">
               <NavIcon name={item.icon} />

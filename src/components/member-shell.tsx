@@ -31,9 +31,19 @@ export function MemberShell({
           </span>
         </Link>
         <Link className="member-mobile-class" href="/photos">
-          <span aria-hidden="true">▣</span>
+          <span aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <rect x="4" y="7" width="16" height="13" rx="3" />
+              <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7" />
+              <path d="M12 11v5m-2.5-2.5L12 11l2.5 2.5" />
+            </svg>
+          </span>
           <b>我们的高中班</b>
-          <i aria-hidden="true">›</i>
+          <i aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="m9 6 6 6-6 6" />
+            </svg>
+          </i>
         </Link>
         <MemberNav admin={user.role === "admin"} />
         <p className="member-sidebar-note">

@@ -260,7 +260,7 @@ export function ProfileSettings({
                 <b>{requests.length} 张照片等待你确认</b>
                 <span>确认前，它们不会公开展示。</span>
               </header>
-              {requests.map((photo) => (
+              {requests.map((photo, index) => (
                 <article key={photo.id}>
                   <div>
                     <Image
@@ -269,6 +269,7 @@ export function ProfileSettings({
                       fill
                       sizes="72px"
                       unoptimized
+                      loading={index === 0 ? "eager" : "lazy"}
                       suppressHydrationWarning
                     />
                   </div>
