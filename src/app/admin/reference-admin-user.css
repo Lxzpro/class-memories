@@ -52,6 +52,34 @@
   font-size: 10px;
 }
 
+.member-actions .danger-member,
+.member-actions .danger-member:first-child {
+  border-color: rgba(163, 91, 75, 0.24);
+  color: #9b5c50;
+  background: #fff8f5;
+  box-shadow: none;
+}
+
+.member-actions .danger-member:hover:not(:disabled) {
+  border-color: rgba(163, 91, 75, 0.38);
+  background: #f9e9e3;
+}
+
+.member-actions button:disabled {
+  cursor: wait;
+  opacity: 0.56;
+}
+
+@media (max-width: 760px) {
+  .member-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .member-actions .danger-member:last-child:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 700px) {
   .admin-cloud-state {
     display: none;

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { AdminOverview } from "@/components/admin-overview";
 import type { AdminDashboardData, AdminInviteView } from "@/lib/admin-data";
-import type { Photo, PhotoVisibility } from "@/types/domain";
+import type { Photo, PhotoVisibility, Profile } from "@/types/domain";
 
 type Tab = "overview" | "upload" | "photos" | "members" | "invites" | "logs";
 type QueueItem = {
@@ -72,6 +72,7 @@ export function AdminDashboard({
   const [accessPhotoId, setAccessPhotoId] = useState<string | null>(null);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [newCode, setNewCode] = useState("");
+  const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null);
   const [inviteForm, setInviteForm] = useState({ validDays: 7, maxUses: 10 });
   const fileInput = useRef<HTMLInputElement>(null);
   const approvedCount = members.filter(
@@ -232,6 +233,57 @@ export function AdminDashboard({
           member.id === id ? { ...member, status } : member,
         ),
       );
+  }
+
+  async function deleteMember(member: Profile) {
+    if (member.role !== "member") return;
+    if (
+      !window.confirm(
+        `确认永久删除“${member.displayName}”吗？\n\n该账号将无法登录，收藏、留言和隐私申请会一并删除；已上传照片会保留并转交当前管理员。此操作无法撤销。`,
+      )
+    )
+      return;
+
+    setDeletingMemberId(member.id);
+    try {
+      const response = await fetch(`/api/admin/members/${member.id}`, {
+        method: "DELETE",
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        newOwnerId?: string;
+      };
+      if (!response.ok)
+        throw new Error(result.error || "删除成员失败，请稍后重试。");
+
+      setMembers((current) =>
+        current.filter((currentMember) => currentMember.id !== member.id),
+      );
+      setPhotos((current) =>
+        current.map((photo) => ({
+          ...photo,
+          uploadedBy:
+            photo.uploadedBy === member.id && result.newOwnerId
+              ? result.newOwnerId
+              : photo.uploadedBy,
+          people: photo.people.filter((person) => person.id !== member.id),
+          selectedUserIds: photo.selectedUserIds.filter(
+            (userId) => userId !== member.id,
+          ),
+        })),
+      );
+      setPrivacyRequests((current) =>
+        current.filter((request) => request.userId !== member.id),
+      );
+    } catch (reason) {
+      window.alert(
+        reason instanceof Error
+          ? reason.message
+          : "删除成员失败，请稍后重试。",
+      );
+    } finally {
+      setDeletingMemberId(null);
+    }
   }
 
   async function reviewPrivacyRequest(
@@ -917,19 +969,39 @@ export function AdminDashboard({
                           ? "待审核"
                           : "已拒绝"}
                     </small>
-                    {member.status === "pending" && (
-                      <div className="review-actions">
+                    {member.role === "member" && (
+                      <div className="review-actions member-actions">
+                        {member.status === "pending" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                reviewMember(member.id, "approved")
+                              }
+                              disabled={deletingMemberId === member.id}
+                            >
+                              确认是同学
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                reviewMember(member.id, "rejected")
+                              }
+                              disabled={deletingMemberId === member.id}
+                            >
+                              拒绝
+                            </button>
+                          </>
+                        )}
                         <button
+                          className="danger-member"
                           type="button"
-                          onClick={() => reviewMember(member.id, "approved")}
+                          onClick={() => deleteMember(member)}
+                          disabled={deletingMemberId !== null}
                         >
-                          确认是同学
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => reviewMember(member.id, "rejected")}
-                        >
-                          拒绝
+                          {deletingMemberId === member.id
+                            ? "正在删除…"
+                            : "删除账号"}
                         </button>
                       </div>
                     )}
