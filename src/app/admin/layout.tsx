@@ -9,6 +9,7 @@ import "./reference-admin-user.css";
 import "./reference-admin-note.css";
 import "./reference-admin-icons.css";
 import "../ui-ux-polish.css";
+import "./mobile-admin-polish.css";
 
 export default async function AdminLayout({
   children,

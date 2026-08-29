@@ -30,21 +30,6 @@ export function MemberShell({
             <small>OUR CLASS ARCHIVE</small>
           </span>
         </Link>
-        <Link className="member-mobile-class" href="/photos">
-          <span aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <rect x="4" y="7" width="16" height="13" rx="3" />
-              <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7" />
-              <path d="M12 11v5m-2.5-2.5L12 11l2.5 2.5" />
-            </svg>
-          </span>
-          <b>我们的高中班</b>
-          <i aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="m9 6 6 6-6 6" />
-            </svg>
-          </i>
-        </Link>
         <MemberNav admin={user.role === "admin"} />
         <p className="member-sidebar-note">
           <i aria-hidden="true">⌁</i>
@@ -53,6 +38,16 @@ export function MemberShell({
           只按记忆。
         </p>
         <div className="member-mobile-actions">
+          <Link
+            className="member-mobile-random"
+            href="/random?mode=shuffle"
+            aria-label="随机翻一张回忆"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h3.2c4.8 0 4.8 10 9.6 10H20" />
+              <path d="m17 14 3 3-3 3M4 17h3.2c1.5 0 2.5-1 3.4-2.3M14 9.3C14.8 8 15.7 7 16.8 7H20m-3-3 3 3-3 3" />
+            </svg>
+          </Link>
           {user.role === "admin" && (
             <Link
               className="member-mobile-admin"

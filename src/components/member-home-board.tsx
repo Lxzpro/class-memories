@@ -24,6 +24,7 @@ export function MemberHomeBoard({
   const [comments, setComments] = useState<PhotoComment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [commentError, setCommentError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const featured = photos[0] ?? null;
 
   const visiblePhotos = useMemo(() => {
@@ -64,20 +65,30 @@ export function MemberHomeBoard({
 
   async function submitComment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!featured || !commentText.trim()) return;
+    const content = commentText.trim();
+    if (!featured || !content || isSubmitting) return;
+
     setCommentError("");
-    const response = await fetch(`/api/photos/${featured.id}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: commentText.trim() }),
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setCommentError(result.error || "留言发送失败，请稍后再试。");
-      return;
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`/api/photos/${featured.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setCommentError(result.error || "留言发送失败，请稍后再试。");
+        return;
+      }
+      setComments((current) => [...current, result.comment]);
+      setCommentText("");
+    } catch {
+      setCommentError("留言发送失败，请检查网络后重试。");
+    } finally {
+      setIsSubmitting(false);
     }
-    setComments((current) => [...current, result.comment]);
-    setCommentText("");
   }
 
   return (
@@ -253,7 +264,7 @@ export function MemberHomeBoard({
             </div>
           )}
         </div>
-        <form onSubmit={submitComment}>
+        <form onSubmit={submitComment} aria-busy={isSubmitting}>
           <label className="sr-only" htmlFor="home-memory-comment">
             写一条照片留言
           </label>
@@ -265,8 +276,13 @@ export function MemberHomeBoard({
             placeholder="我记得……"
             disabled={!featured}
           />
-          <button type="submit" disabled={!featured || !commentText.trim()}>
-            ↗
+          <button
+            type="submit"
+            disabled={!featured || !commentText.trim() || isSubmitting}
+            aria-busy={isSubmitting}
+            aria-label={isSubmitting ? "留言发送中" : "发送留言"}
+          >
+            {isSubmitting ? "…" : "↗"}
           </button>
         </form>
         {commentError && <p className="memory-message-error">{commentError}</p>}

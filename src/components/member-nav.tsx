@@ -14,6 +14,8 @@ const items: Array<{ href: string; label: string; icon: IconName }> = [
   { href: "/profile", label: "我的", icon: "profile" },
 ];
 
+const mobileItems = items.filter((item) => item.icon !== "random");
+
 function NavIcon({ name }: { name: IconName }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -92,7 +94,7 @@ export function MemberNav({ admin = false }: { admin?: boolean }) {
         )}
       </nav>
       <nav className="member-mobile-nav" aria-label="手机底部导航">
-        {items.map((item) => (
+        {mobileItems.map((item) => (
           <Link
             key={item.href}
             className={`${pathname === item.href ? "active" : ""}${item.icon === "upload" ? " upload-nav" : ""}`}

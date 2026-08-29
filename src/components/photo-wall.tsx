@@ -72,7 +72,11 @@ export function PhotoWall({
   const [commentsByPhoto, setCommentsByPhoto] = useState<Record<string, PhotoComment[]>>({});
   const [commentText, setCommentText] = useState("");
   const [commentError, setCommentError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const touchStart = useRef<number | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const modalCloseRef = useRef<HTMLButtonElement>(null);
+  const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
   const filtered = useMemo(
     () => filterPhotos(photos, query, tag),
     [photos, query, tag],
@@ -80,6 +84,7 @@ export function PhotoWall({
   const visible = filtered.slice(0, limit);
   const selectedIndex = filtered.findIndex((photo) => photo.id === selectedId);
   const selected = selectedIndex >= 0 ? filtered[selectedIndex] : null;
+  const modalOpen = Boolean(selected);
   const comments = selectedId ? (commentsByPhoto[selectedId] ?? []) : [];
 
   useEffect(() => {
@@ -122,6 +127,24 @@ export function PhotoWall({
   }, [selectedId]);
 
   useEffect(() => {
+    if (!modalOpen) return;
+    const fallbackFocus =
+      document.activeElement instanceof HTMLElement &&
+      document.activeElement !== document.body
+        ? document.activeElement
+        : null;
+    const frame = window.requestAnimationFrame(() => {
+      modalCloseRef.current?.focus();
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      const returnTarget = modalTriggerRef.current ?? fallbackFocus;
+      modalTriggerRef.current = null;
+      returnTarget?.focus();
+    };
+  }, [modalOpen]);
+
+  useEffect(() => {
     if (!selectedId) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -144,7 +167,38 @@ export function PhotoWall({
   useEffect(() => {
     function keydown(event: KeyboardEvent) {
       if (!selected) return;
-      if (event.key === "Escape") setSelectedId(null);
+      if (event.key === "Tab") {
+        const modal = modalRef.current;
+        if (!modal) return;
+        const focusable = Array.from(
+          modal.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((element) => element.getClientRects().length > 0);
+        const first = focusable[0] ?? modalCloseRef.current;
+        const last = focusable.at(-1) ?? modalCloseRef.current;
+        if (!first || !last) return;
+        const active = document.activeElement;
+        if (event.shiftKey && (active === first || !modal.contains(active))) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && (active === last || !modal.contains(active))) {
+          event.preventDefault();
+          first.focus();
+        }
+        return;
+      }
+      if (event.key === "Escape") {
+        setSelectedId(null);
+        return;
+      }
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.matches('input, textarea, select, [contenteditable="true"]')
+      ) {
+        return;
+      }
       if (event.key === "ArrowRight") move(1);
       if (event.key === "ArrowLeft") move(-1);
     }
@@ -165,23 +219,34 @@ export function PhotoWall({
 
   async function submitComment(event: React.FormEvent) {
     event.preventDefault();
-    if (!selected || !commentText.trim()) return;
+    const content = commentText.trim();
+    if (!selected || !content || isSubmitting) return;
+
+    const photoId = selected.id;
     setCommentError("");
-    const response = await fetch(`/api/photos/${selected.id}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: commentText.trim() }),
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setCommentError(result.error || "留言失败");
-      return;
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`/api/photos/${photoId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setCommentError(result.error || "留言失败");
+        return;
+      }
+      setCommentsByPhoto((current) => ({
+        ...current,
+        [photoId]: [...(current[photoId] ?? []), result.comment],
+      }));
+      setCommentText("");
+    } catch {
+      setCommentError("留言失败，请检查网络后重试。");
+    } finally {
+      setIsSubmitting(false);
     }
-    setCommentsByPhoto((current) => ({
-      ...current,
-      [selected.id]: [...(current[selected.id] ?? []), result.comment],
-    }));
-    setCommentText("");
   }
 
   const actionButtons = selected ? (
@@ -245,7 +310,10 @@ export function PhotoWall({
             >
               <button
                 type="button"
-                onClick={() => setSelectedId(photo.id)}
+                onClick={(event) => {
+                  modalTriggerRef.current = event.currentTarget;
+                  setSelectedId(photo.id);
+                }}
                 aria-label={`${copy.openLabel}：${photo.title}`}
               >
                 <div
@@ -307,6 +375,7 @@ export function PhotoWall({
 
       {selected && (
         <div
+          ref={modalRef}
           className="photo-modal"
           role="dialog"
           aria-modal="true"
@@ -316,6 +385,7 @@ export function PhotoWall({
           }}
         >
           <button
+            ref={modalCloseRef}
             className="modal-close"
             type="button"
             onClick={() => setSelectedId(null)}
@@ -327,9 +397,17 @@ export function PhotoWall({
             <div
               className="detail-image-column"
               onTouchStart={(event) => {
+                if (selected.mediaType === "video") {
+                  touchStart.current = null;
+                  return;
+                }
                 touchStart.current = event.touches[0].clientX;
               }}
               onTouchEnd={(event) => {
+                if (selected.mediaType === "video") {
+                  touchStart.current = null;
+                  return;
+                }
                 if (touchStart.current === null) return;
                 const delta = event.changedTouches[0].clientX - touchStart.current;
                 if (Math.abs(delta) > 60) move(delta < 0 ? 1 : -1);
@@ -433,7 +511,7 @@ export function PhotoWall({
                     <small>还没有人留言，写下你记得的事吧。</small>
                   )}
                 </div>
-                <form onSubmit={submitComment}>
+                <form onSubmit={submitComment} aria-busy={isSubmitting}>
                   <label className="sr-only" htmlFor="comment-text">
                     {copy.comment}
                   </label>
@@ -444,7 +522,13 @@ export function PhotoWall({
                     maxLength={300}
                     placeholder="我记得……"
                   />
-                  <button type="submit">发送</button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !commentText.trim()}
+                    aria-busy={isSubmitting}
+                  >
+                    {isSubmitting ? "发送中…" : "发送"}
+                  </button>
                 </form>
                 {commentError && (
                   <p className="comment-error">{commentError}</p>

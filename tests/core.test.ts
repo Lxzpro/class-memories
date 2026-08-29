@@ -6,7 +6,13 @@ import { evaluateInvite } from "@/lib/invites";
 import { filterPhotos } from "@/lib/photo-filter";
 import { chooseRandomId, pushRecentId } from "@/lib/random";
 import { checkRateLimit, resetRateLimit } from "@/lib/security/rate-limit";
-import { hashInviteCode, signToken, verifyToken } from "@/lib/security/tokens";
+import {
+  decryptInviteCode,
+  encryptInviteCode,
+  hashInviteCode,
+  signToken,
+  verifyToken,
+} from "@/lib/security/tokens";
 import type { InviteCodeRecord, Photo, Profile } from "@/types/domain";
 
 const member: Profile = { id: "member", email: "m@example.com", displayName: "同学", avatarKey: null, role: "member", status: "approved", showRealName: true, allowOriginalDownload: true, createdAt: "2026-01-01" };
@@ -52,6 +58,17 @@ describe("invite security", () => {
     const token = signToken({ userId: "member" }, Date.now() + 10000);
     expect(verifyToken<{ userId: string }>(token)?.userId).toBe("member");
     expect(verifyToken(`${token}x`)).toBeNull();
+  });
+  it("encrypts recoverable admin copies without storing plaintext and rejects tampering", () => {
+    const first = encryptInviteCode(" class-1 ");
+    const second = encryptInviteCode("CLASS-1");
+    expect(first).not.toContain("CLASS-1");
+    expect(first).not.toBe(second);
+    expect(decryptInviteCode(first)).toBe("CLASS-1");
+    const parts = first.split(".");
+    parts[3] = (parts[3][0] === "A" ? "B" : "A") + parts[3].slice(1);
+    expect(decryptInviteCode(parts.join("."))).toBeNull();
+    expect(decryptInviteCode(null)).toBeNull();
   });
   it("limits repeated invite attempts", () => {
     resetRateLimit("test");

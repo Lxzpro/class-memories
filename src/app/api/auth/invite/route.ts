@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { DEMO_MODE } from "@/lib/config";
+import { MOCK_INVITE_CODE } from "@/lib/demo-invites";
 import { evaluateInvite, inviteErrorMessage } from "@/lib/invites";
-import { MOCK_INVITE_CODE } from "@/lib/mock-data";
 import { checkRateLimit, resetRateLimit } from "@/lib/security/rate-limit";
 import { hashInviteCode, safeHashEquals, signToken } from "@/lib/security/tokens";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
@@ -29,7 +29,11 @@ export async function POST(request: Request) {
     }
   } else {
     const supabase = await createSupabaseAdminClient();
-    const { data } = await supabase.from("invite_codes").select("*").eq("code_hash", codeHash).maybeSingle();
+    const { data } = await supabase
+      .from("invite_codes")
+      .select("id,code_hash,expires_at,max_uses,used_count,revoked_at,created_by,created_at")
+      .eq("code_hash", codeHash)
+      .maybeSingle();
     invite = data ? mapInvite(data as Record<string, unknown>) : null;
   }
 

@@ -36,8 +36,6 @@ export const MOCK_CREDENTIALS = {
   "pending@demo.local": "Pending123!",
 } as const;
 
-export const MOCK_INVITE_CODE = "SHIGUANG-2026";
-
 const memorySeeds = [
   ["午后的教室", "阳光从最后一排慢慢移到黑板边。", "三楼教室", ["教室", "日常"], 4, 5],
   ["跑道尽头", "风很大，我们笑得比加油声还响。", "操场", ["操场", "运动会"], 5, 4],

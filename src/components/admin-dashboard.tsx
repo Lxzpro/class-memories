@@ -24,6 +24,12 @@ type QueueItem = {
   error?: string;
   retryable?: boolean;
 };
+type InviteCodeState = {
+  code?: string;
+  loading?: boolean;
+  error?: string;
+  copied?: boolean;
+};
 const tabLabels: Record<Tab, string> = {
   overview: "班级回忆管理",
   upload: "批量上传",
@@ -53,7 +59,11 @@ export function AdminDashboard({
   );
   const [accessPhotoId, setAccessPhotoId] = useState<string | null>(null);
   const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [newCode, setNewCode] = useState("");
+  const [inviteCodeStates, setInviteCodeStates] = useState<
+    Record<string, InviteCodeState>
+  >({});
+  const [isCreatingInvite, setIsCreatingInvite] = useState(false);
+  const [inviteCreateError, setInviteCreateError] = useState("");
   const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null);
   const [inviteForm, setInviteForm] = useState({ validDays: 7, maxUses: 10 });
   const fileInput = useRef<HTMLInputElement>(null);
@@ -382,17 +392,28 @@ export function AdminDashboard({
 
   async function createInvite(event: React.FormEvent) {
     event.preventDefault();
-    const response = await fetch("/api/admin/invites", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(inviteForm),
-    });
-    const result = await response.json();
-    if (response.ok) {
-      setNewCode(result.invite.code);
+    setIsCreatingInvite(true);
+    setInviteCreateError("");
+    try {
+      const response = await fetch("/api/admin/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(inviteForm),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.invite) {
+        setInviteCreateError(result?.error || "创建邀请失败，请稍后再试。");
+        return;
+      }
+
+      setInviteCodeStates((current) => ({
+        ...current,
+        [result.invite.id]: { code: result.invite.code },
+      }));
       setInvites((current) => [
         {
           id: result.invite.id,
+          codeAvailable: true,
           expiresAt: result.invite.expiresAt,
           maxUses: result.invite.maxUses,
           usedCount: 0,
@@ -402,6 +423,73 @@ export function AdminDashboard({
         },
         ...current,
       ]);
+    } catch {
+      setInviteCreateError("网络连接失败，请稍后再试。");
+    } finally {
+      setIsCreatingInvite(false);
+    }
+  }
+
+  function updateInviteCodeState(id: string, update: InviteCodeState) {
+    setInviteCodeStates((current) => ({
+      ...current,
+      [id]: { ...current[id], ...update },
+    }));
+  }
+
+  async function toggleInviteCode(id: string) {
+    const current = inviteCodeStates[id];
+    if (current?.code) {
+      updateInviteCodeState(id, {
+        code: undefined,
+        copied: false,
+        error: undefined,
+      });
+      return;
+    }
+
+    updateInviteCodeState(id, {
+      loading: true,
+      copied: false,
+      error: undefined,
+    });
+    try {
+      const response = await fetch(
+        "/api/admin/invites/" + encodeURIComponent(id) + "/code",
+        { cache: "no-store" },
+      );
+      const result = await response.json().catch(() => null);
+      if (!response.ok || typeof result?.code !== "string") {
+        updateInviteCodeState(id, {
+          loading: false,
+          error: result?.error || "读取邀请口令失败，请稍后再试。",
+        });
+        return;
+      }
+      updateInviteCodeState(id, {
+        code: result.code,
+        loading: false,
+        error: undefined,
+      });
+    } catch {
+      updateInviteCodeState(id, {
+        loading: false,
+        error: "网络连接失败，请稍后再试。",
+      });
+    }
+  }
+
+  async function copyInviteCode(id: string) {
+    const code = inviteCodeStates[id]?.code;
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      updateInviteCodeState(id, { copied: true, error: undefined });
+    } catch {
+      updateInviteCodeState(id, {
+        copied: false,
+        error: "复制失败，请长按口令手动复制。",
+      });
     }
   }
 
@@ -1104,7 +1192,7 @@ export function AdminDashboard({
             <div>
               <p>INVITATION ACCESS</p>
               <h2>邀请口令</h2>
-              <span>口令只保存哈希；新口令明文只显示一次。</span>
+              <span>口令经加密保存，管理员可随时按需查看和复制。</span>
             </div>
           </div>
           <div className="invite-layout">
@@ -1140,23 +1228,22 @@ export function AdminDashboard({
                   }
                 />
               </label>
-              <button type="submit">生成限时口令</button>
-              {newCode && (
-                <div className="new-invite">
-                  <small>请现在复制，关闭后不再显示</small>
-                  <b>{newCode}</b>
-                  <button
-                    type="button"
-                    onClick={() => navigator.clipboard.writeText(newCode)}
-                  >
-                    复制口令
-                  </button>
-                </div>
+              <button type="submit" disabled={isCreatingInvite}>
+                {isCreatingInvite ? "正在生成…" : "生成限时口令"}
+              </button>
+              <p className="invite-creator-note">
+                新口令会以加密密文保存，数据库不会记录明文。
+              </p>
+              {inviteCreateError && (
+                <p className="invite-inline-error" role="alert">
+                  {inviteCreateError}
+                </p>
               )}
             </form>
             <div className="invite-list">
               {invites.map((invite: AdminInviteView) => {
                 const expired = new Date(invite.expiresAt) < new Date();
+                const codeState = inviteCodeStates[invite.id];
                 const state = invite.revokedAt
                   ? "已撤销"
                   : expired
@@ -1190,11 +1277,60 @@ export function AdminDashboard({
                     {state === "有效" && (
                       <button
                         type="button"
+                        className="invite-revoke-button"
                         onClick={() => revokeInvite(invite.id)}
                       >
                         撤销
                       </button>
                     )}
+                    <div className="invite-code-panel">
+                      <div className="invite-code-value">
+                        <span>邀请口令</span>
+                        <code>
+                          {codeState?.code
+                            ? codeState.code
+                            : invite.codeAvailable
+                              ? "••••••••••••"
+                              : "历史口令不可恢复"}
+                        </code>
+                      </div>
+                      <div className="invite-code-actions">
+                        {invite.codeAvailable && (
+                          <button
+                            type="button"
+                            className="invite-code-button"
+                            aria-expanded={Boolean(codeState?.code)}
+                            disabled={codeState?.loading}
+                            onClick={() => toggleInviteCode(invite.id)}
+                          >
+                            {codeState?.loading
+                              ? "读取中…"
+                              : codeState?.code
+                                ? "隐藏口令"
+                                : "查看口令"}
+                          </button>
+                        )}
+                        {codeState?.code && (
+                          <button
+                            type="button"
+                            className="invite-copy-button"
+                            onClick={() => copyInviteCode(invite.id)}
+                          >
+                            {codeState.copied ? "已复制" : "复制口令"}
+                          </button>
+                        )}
+                      </div>
+                      {!invite.codeAvailable && (
+                        <p className="invite-code-help">
+                          该邀请创建于加密存储升级前，仅保留不可逆哈希。请新建口令替代。
+                        </p>
+                      )}
+                      {codeState?.error && (
+                        <p className="invite-inline-error" role="alert">
+                          {codeState.error}
+                        </p>
+                      )}
+                    </div>
                   </article>
                 );
               })}

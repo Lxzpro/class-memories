@@ -1,0 +1,570 @@
+/* Final mobile owner for the administrator workspace. */
+@media (max-width: 760px) {
+  .admin-shell {
+    min-height: 100svh;
+    min-height: 100dvh;
+    display: block;
+    overflow-x: clip;
+    background:
+      radial-gradient(circle at 94% 3%, rgba(170, 197, 184, 0.2), transparent 18rem),
+      #f7f6f1;
+  }
+
+  .admin-shell .admin-sidebar {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    display: block;
+    padding: 7px 10px 0;
+    overflow: hidden;
+    border: 0;
+    border-bottom: 1px solid rgba(37, 55, 65, 0.08);
+    background: rgba(255, 255, 252, 0.94);
+    box-shadow: 0 10px 28px rgba(39, 53, 61, 0.07);
+    backdrop-filter: blur(20px) saturate(1.12);
+    -webkit-backdrop-filter: blur(20px) saturate(1.12);
+  }
+
+  .admin-shell .admin-brand {
+    min-height: 44px;
+    justify-content: flex-start;
+    gap: 9px;
+    padding: 0 6px;
+    color: #1d334a;
+  }
+
+  .admin-shell .admin-logo,
+  .admin-shell .admin-brand > .admin-logo {
+    width: 31px;
+    height: 31px;
+    border-radius: 9px;
+  }
+
+  .admin-shell .admin-brand div {
+    display: block;
+  }
+
+  .admin-shell .admin-brand b {
+    color: #1d334a;
+    font-family: var(--font-serif-cn), serif;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+
+  .admin-shell .admin-brand small {
+    display: block;
+    margin-top: 2px;
+    color: #7d8992;
+    font-size: 7px;
+  }
+
+  .admin-shell .admin-nav {
+    width: auto;
+    min-width: 0;
+    display: block;
+    position: relative;
+    margin: 2px -10px 0;
+    overflow: hidden;
+  }
+
+  .admin-shell .admin-nav > p,
+  .admin-shell .admin-sidebar-footer {
+    display: none;
+  }
+
+  .admin-shell .admin-nav > div {
+    width: auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 4px 18px 8px;
+    scroll-padding-inline: 18px;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 14px,
+      #000 calc(100% - 14px),
+      transparent
+    );
+  }
+
+  .admin-shell .admin-nav > div::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-shell .admin-nav a {
+    min-width: max-content;
+    min-height: 44px;
+    flex: 0 0 auto;
+    gap: 7px;
+    padding: 0 13px;
+    scroll-snap-align: center;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    color: #687785;
+    font-size: 13px;
+  }
+
+  .admin-shell .admin-nav a:hover {
+    transform: none;
+  }
+
+  .admin-shell .admin-nav a.active {
+    border-color: rgba(67, 137, 218, 0.14);
+    background: #edf5ff;
+    box-shadow: none;
+    color: #347ed2;
+  }
+
+  .admin-shell .admin-nav a.active::before {
+    display: none;
+  }
+
+  .admin-shell .admin-nav-icon,
+  .admin-shell .admin-sidebar .admin-nav .admin-nav-icon {
+    width: 18px;
+    height: 18px;
+    display: grid;
+    color: currentColor;
+    font-size: 16px;
+  }
+
+  .admin-shell .admin-nav-label,
+  .admin-shell .admin-sidebar .admin-nav .admin-nav-label {
+    display: inline;
+  }
+
+  .admin-shell .admin-main {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 14px 54px;
+    overflow-x: clip;
+  }
+
+  .admin-shell .admin-topbar {
+    width: 100%;
+    height: 98px;
+    min-height: 98px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 0 1px;
+    border-bottom: 1px solid rgba(37, 55, 65, 0.08);
+  }
+
+  .admin-shell .admin-topbar > div:first-child {
+    min-width: 0;
+  }
+
+  .admin-shell .admin-topbar p {
+    margin: 0 0 5px;
+    overflow: hidden;
+    color: #72808b;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-shell .admin-topbar h1 {
+    overflow: hidden;
+    font-size: clamp(27px, 8vw, 34px);
+    line-height: 1.18;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-shell .admin-topbar > div:last-child {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0;
+    background: transparent;
+  }
+
+  .admin-shell .admin-topbar-return {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid rgba(37, 55, 65, 0.09);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.8);
+    color: transparent;
+    font-size: 0;
+    text-decoration: none;
+  }
+
+  .admin-shell .admin-topbar-return::before {
+    content: "←";
+    color: #536575;
+    font-size: 19px;
+  }
+
+  .admin-shell .admin-cloud-state {
+    display: none;
+  }
+
+  .admin-shell .admin-topbar-user {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .admin-shell .admin-topbar-user > i {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+  }
+
+  .admin-shell .admin-topbar-user > span {
+    display: none;
+  }
+
+  .admin-shell .admin-section {
+    padding: 18px 0 34px;
+  }
+
+  .admin-shell .section-title {
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .admin-shell .section-title > div {
+    min-width: 0;
+  }
+
+  .admin-shell .section-title p {
+    margin-bottom: 5px;
+    color: #6e8494;
+    font-size: 9px;
+  }
+
+  .admin-shell .section-title h2 {
+    display: none;
+  }
+
+  .admin-shell .section-title span {
+    display: block;
+    color: #647483;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .admin-shell :where(.section-title > a, .section-title > button) {
+    min-height: 44px;
+    flex: 0 0 auto;
+    padding-inline: 14px;
+  }
+
+  .admin-shell .admin-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .admin-shell .admin-metrics > article,
+  .admin-shell .admin-metric {
+    min-height: 116px;
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .admin-shell :where(.overview-panel, .admin-panel, .invite-creator, .invite-list) {
+    padding: 17px;
+    border-radius: 19px;
+  }
+
+  .admin-shell .admin-overview-grid,
+  .admin-shell .invite-layout,
+  .admin-shell .admin-review-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .admin-shell :where(
+      .admin-topbar-return,
+      .review-actions button,
+      .reference-review-actions button,
+      .privacy-overview-actions button,
+      .pending-photo-actions button,
+      .danger-member,
+      .invite-creator > button,
+      .invite-revoke-button
+    ) {
+    min-height: 44px;
+  }
+
+  .admin-shell .member-review-list article {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 13px;
+  }
+
+  .admin-shell .member-review-list article > i {
+    width: 44px;
+    height: 44px;
+  }
+
+  .admin-shell .member-review-list article > div:nth-child(2) {
+    min-width: 0;
+  }
+
+  .admin-shell .member-review-list article > div:nth-child(2) span {
+    display: block;
+    overflow-wrap: anywhere;
+    line-height: 1.45;
+  }
+
+  .admin-shell .member-status {
+    align-self: start;
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  .admin-shell .member-review-list .review-actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .admin-shell .member-review-list .review-actions .danger-member {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .admin-shell .member-review-list .review-actions button,
+  .admin-shell .member-review-list > article > .danger-member,
+  .admin-shell .privacy-review-list .review-actions button {
+    min-height: 44px;
+  }
+
+  .admin-shell .privacy-review-list article {
+    padding: 17px;
+    border-radius: 17px;
+  }
+
+  .admin-shell .privacy-review-list .review-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .admin-shell .admin-photo-list article {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 72px repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .admin-shell .admin-photo-thumb {
+    width: 72px;
+    height: 72px;
+    grid-column: 1;
+  }
+
+  .admin-shell .admin-photo-copy {
+    min-width: 0;
+    grid-column: 2 / 4;
+  }
+
+  .admin-shell .admin-photo-copy input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .admin-shell .admin-photo-list article > select {
+    width: 100%;
+    min-height: 44px;
+    grid-column: 1 / 4;
+  }
+
+  .admin-shell .admin-photo-list article > button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 5px;
+    font-size: 12px;
+  }
+
+  .admin-shell .admin-photo-list .photo-access-editor {
+    min-width: 0;
+    grid-column: 1 / 4;
+    padding: 15px;
+  }
+
+  .admin-shell .photo-access-editor > div > div label,
+  .admin-shell .photo-access-editor .download-check {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 12px;
+    line-height: 1.35;
+  }
+
+  .admin-shell .photo-access-editor input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+  }
+
+  .admin-shell .invite-layout {
+    gap: 12px;
+  }
+
+  .admin-shell .invite-creator {
+    padding: 18px;
+  }
+
+  .admin-shell .invite-creator :where(input, button) {
+    min-height: 46px;
+    font-size: 16px;
+  }
+
+  .admin-shell .invite-list {
+    padding: 10px;
+  }
+
+  .admin-shell .invite-list article {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 13px;
+    border-radius: 16px;
+  }
+
+  .admin-shell .invite-list article > div:first-child {
+    min-width: 0;
+  }
+
+  .admin-shell .invite-list article > p {
+    align-self: start;
+    justify-self: end;
+    margin: 0;
+  }
+
+  .admin-shell .invite-list article > small {
+    align-self: center;
+    justify-self: start;
+  }
+
+  .admin-shell .invite-list article > .invite-revoke-button {
+    align-self: center;
+    justify-self: end;
+  }
+
+  .admin-shell .invite-code-panel {
+    min-width: 0;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 13px;
+  }
+
+  .admin-shell .invite-code-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .admin-shell .invite-code-actions button:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .admin-shell .admin-logs article {
+    min-height: 0;
+    grid-template-columns: 12px minmax(0, 1fr);
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .admin-shell .admin-logs article > span {
+    grid-column: 2;
+  }
+
+  .admin-shell :where(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  .admin-shell .admin-upload-people > div {
+    gap: 8px;
+  }
+
+  .admin-shell .admin-upload-people label {
+    min-height: 44px;
+    padding: 9px 13px;
+    gap: 9px;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .admin-shell .admin-upload-people input {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+  }
+
+  .admin-shell .admin-video-preview {
+    width: 44px;
+    height: 44px;
+  }
+
+  .admin-shell .upload-progress button,
+  .admin-shell .upload-item > button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-shell .admin-main {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .admin-shell .section-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-shell :where(.section-title > a, .section-title > button) {
+    width: 100%;
+  }
+
+  .admin-shell .admin-photo-list article {
+    grid-template-columns: 64px repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-shell .admin-photo-thumb {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell .admin-nav > div {
+    scroll-behavior: auto;
+  }
+}

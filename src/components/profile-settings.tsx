@@ -144,8 +144,8 @@ export function ProfileSettings({
     },
     {
       key: "reduceMotion",
-      title: "动画效果",
-      note: "关闭后减少洗牌、视差和照片显影动画。",
+      title: "减少动画",
+      note: "开启后减少洗牌、视差和照片显影动画。",
     },
     {
       key: "soundEnabled",

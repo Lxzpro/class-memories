@@ -467,3 +467,225 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Final mobile upload pass: compact editing cards and a reachable submit action. */
+@media (max-width: 760px) {
+  .reference-upload-page {
+    width: min(calc(100% - 28px), 620px);
+    padding: 16px 0 34px;
+  }
+
+  .reference-upload-page:has(.upload-submit-all[data-has-items="true"]) {
+    padding-bottom: 112px;
+  }
+
+  .reference-upload-intro {
+    margin-bottom: 16px;
+    text-align: left;
+  }
+
+  .reference-upload-intro > p {
+    margin-bottom: 8px;
+    font-size: 9px;
+  }
+
+  .reference-upload-intro h1 {
+    font-size: clamp(29px, 8.5vw, 40px);
+    letter-spacing: 0.025em;
+    line-height: 1.25;
+  }
+
+  .reference-upload-intro small {
+    margin-top: 9px;
+    font-size: 12px;
+    line-height: 1.65;
+  }
+
+  .upload-reference-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .upload-reference-layout .upload-reference-main {
+    min-width: 0;
+    padding: 15px;
+    border-radius: 21px;
+  }
+
+  .upload-reference-layout .member-upload-toolbar {
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .upload-reference-layout .member-upload-toolbar h2 {
+    font-size: 20px;
+    line-height: 1.35;
+  }
+
+  .upload-reference-layout .member-upload-toolbar span {
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  .upload-reference-layout .member-upload-toolbar > b {
+    min-width: 48px;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    font-size: 12px;
+  }
+
+  .upload-reference-layout .upload-mobile-sources {
+    gap: 8px;
+  }
+
+  .upload-reference-layout .upload-mobile-sources button {
+    min-height: 92px;
+    padding: 14px 8px;
+    border-radius: 17px;
+  }
+
+  .upload-reference-layout .upload-mobile-sources button b {
+    font-size: 12px;
+  }
+
+  .upload-reference-layout .upload-mobile-sources > small {
+    margin-top: 1px;
+    font-size: 11px;
+  }
+
+  .upload-reference-layout .member-upload-notice {
+    margin: 12px 0;
+    padding: 11px 12px;
+    border-radius: 14px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .upload-reference-layout .member-upload-list {
+    gap: 12px;
+  }
+
+  .upload-reference-layout .member-upload-item {
+    overflow: hidden;
+    border-radius: 19px;
+    box-shadow: 0 10px 26px rgba(43, 57, 76, 0.06);
+  }
+
+  .upload-reference-layout .member-upload-fields {
+    gap: 13px;
+  }
+
+  .upload-reference-layout .member-upload-fields label > span,
+  .upload-reference-layout .member-upload-people legend {
+    font-size: 12px;
+  }
+
+  .upload-reference-layout .member-upload-fields label > span small,
+  .upload-reference-layout .member-upload-people legend small {
+    font-size: 11px;
+  }
+
+  .upload-reference-layout :where(.member-upload-fields input, .member-upload-fields textarea) {
+    min-height: 46px;
+    border-radius: 13px;
+    font-size: 16px;
+  }
+
+  .upload-reference-layout .member-upload-story textarea {
+    min-height: 100px;
+  }
+
+  .upload-reference-layout .upload-tag-suggestions {
+    gap: 7px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .upload-reference-layout .upload-tag-suggestions button,
+  .upload-reference-layout .upload-tag-suggestions > span {
+    min-width: 44px;
+    min-height: 44px;
+    flex: 0 0 auto;
+    padding-inline: 13px;
+    font-size: 12px;
+  }
+
+  .upload-reference-layout .member-upload-people {
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .upload-reference-layout .member-upload-people > div {
+    max-height: 176px;
+    gap: 7px;
+  }
+
+  .upload-reference-layout .member-upload-people label {
+    min-height: 44px;
+    padding-inline: 12px;
+    font-size: 12px;
+  }
+
+  .upload-reference-layout .member-upload-people input {
+    width: 18px;
+    height: 18px;
+  }
+
+  .upload-reference-layout :where(.member-upload-state button, .member-upload-preview-feedback button) {
+    min-height: 44px;
+  }
+
+  .upload-reference-layout .member-upload-remove {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .upload-reference-layout .upload-reference-aside {
+    gap: 12px;
+  }
+
+  .upload-reference-layout :where(.upload-privacy-card, .upload-safety-card, .upload-steps-card) {
+    padding: 17px;
+    border-radius: 19px;
+  }
+
+  .upload-reference-layout .upload-privacy-card > label {
+    min-height: 66px;
+  }
+
+  .upload-reference-layout .upload-submit-all[data-has-items="false"] {
+    display: none;
+  }
+
+  .upload-reference-layout .upload-submit-all[data-has-items="true"] {
+    width: auto;
+    min-height: 54px;
+    position: fixed;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: calc(86px + env(safe-area-inset-bottom));
+    left: max(14px, env(safe-area-inset-left));
+    z-index: 88;
+    margin: 0 auto;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 18px;
+    box-shadow: 0 16px 38px rgba(51, 77, 61, 0.24);
+  }
+}
+
+@media (max-width: 560px) {
+  .upload-reference-layout .member-upload-item {
+    padding: 10px;
+  }
+
+  .upload-reference-layout .member-upload-preview {
+    border-radius: 15px;
+  }
+
+  .upload-reference-layout .member-upload-fields {
+    padding: 14px 2px 3px;
+  }
+}

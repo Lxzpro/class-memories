@@ -332,6 +332,7 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
       (item.status === "ready" || item.status === "error") &&
       item.previewStatus === "ready",
   ).length;
+  const hasPendingItems = items.some((item) => item.status !== "submitted");
 
   async function uploadAll() {
     if (previewBlocked) {
@@ -718,6 +719,7 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
 
         <button
           className="upload-submit-all"
+          data-has-items={hasPendingItems}
           type="button"
           disabled={busy || readyCount === 0 || previewBlocked}
           onClick={uploadAll}

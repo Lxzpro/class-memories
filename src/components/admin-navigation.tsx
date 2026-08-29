@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 type AdminIconName =
   | "overview"
@@ -76,9 +77,17 @@ function AdminIcon({ name }: { name: AdminIconName }) {
 
 export function AdminNavigation() {
   const searchParams = useSearchParams();
+  const activeLink = useRef<HTMLAnchorElement>(null);
   const requestedTab = searchParams.get("tab");
   const currentTab =
     navigation.find((item) => item.tab === requestedTab)?.tab ?? "overview";
+
+  useEffect(() => {
+    activeLink.current?.scrollIntoView({
+      block: "nearest",
+      inline: "center",
+    });
+  }, [currentTab]);
 
   return (
     <nav className="admin-nav" aria-label="管理员功能导航">
@@ -88,6 +97,7 @@ export function AdminNavigation() {
           const isActive = currentTab === item.tab;
           return (
             <Link
+              ref={isActive ? activeLink : undefined}
               key={item.tab}
               href={`/admin?tab=${item.tab}`}
               className={isActive ? "active" : undefined}
