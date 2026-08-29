@@ -9,6 +9,8 @@ const orderOptions: Array<{ value: PhotoOrder; label: string }> = [
 ];
 
 type Props = {
+  id: string;
+  hidden: boolean;
   order: PhotoOrder;
   mediaLabel: "照片" | "视频";
   onChange: (order: PhotoOrder) => void;
@@ -16,6 +18,8 @@ type Props = {
 };
 
 export function PhotoOrderControl({
+  id,
+  hidden,
   order,
   mediaLabel,
   onChange,
@@ -24,7 +28,7 @@ export function PhotoOrderControl({
   const reshuffleLabel = `重新随机排列${mediaLabel}`;
 
   return (
-    <div className="photo-order-control">
+    <div id={id} className="photo-order-control" hidden={hidden}>
       <span className="photo-order-label">展示顺序</span>
       <div
         className="photo-order-options"

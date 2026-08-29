@@ -72,11 +72,15 @@ export function PhotoWall({
 }: Props) {
   const copy = wallCopy[variant];
   const searchId = variant === "video" ? "video-search" : "photo-search";
+  const orderControlsId = variant === "video"
+    ? "video-order-controls"
+    : "photo-order-controls";
   const [query, setQuery] = useState("");
   const [uploader, setUploader] = useState<UploaderFilterValue>(ALL_UPLOADERS);
   const [limit, setLimit] = useState(initialLimit);
   const [order, setOrder] = useState<PhotoOrder>(initialOrder);
   const [randomSeed, setRandomSeed] = useState(shuffleSeed);
+  const [orderControlsExpanded, setOrderControlsExpanded] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(() =>
     photos.some((photo) => photo.id === initialSelectedId)
       ? initialSelectedId
@@ -365,7 +369,24 @@ export function PhotoWall({
           }}
         />
         <span className="result-count">{filtered.length} {copy.resultUnit}</span>
+        <button
+          type="button"
+          className="photo-order-toggle"
+          aria-controls={orderControlsId}
+          aria-expanded={orderControlsExpanded}
+          aria-label={orderControlsExpanded ? "收起展示顺序" : "展开展示顺序"}
+          title={orderControlsExpanded ? "收起展示顺序" : "展开展示顺序"}
+          onClick={() => setOrderControlsExpanded((expanded) => !expanded)}
+        >
+          <span className={orderControlsExpanded ? "expanded" : ""}>
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m7 9 5 5 5-5" />
+            </svg>
+          </span>
+        </button>
         <PhotoOrderControl
+          id={orderControlsId}
+          hidden={!orderControlsExpanded}
           order={order}
           mediaLabel={variant === "video" ? "视频" : "照片"}
           onChange={changeOrder}

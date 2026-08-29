@@ -472,7 +472,7 @@
   /* Photo and video galleries. */
   .member-shell .photo-tools {
     top: calc(var(--member-mobile-header-space) + env(safe-area-inset-top));
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 44px;
     gap: 9px;
     margin-bottom: 16px;
     padding: 9px;
@@ -492,7 +492,23 @@
   }
 
   .member-shell .photo-search {
+    grid-column: 1;
+    grid-row: 1;
     min-height: 48px;
+  }
+
+  .member-shell .photo-order-toggle {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .member-shell .photo-tools .uploader-filter {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .member-shell .photo-order-control {
+    grid-column: 1 / -1;
   }
 
   .member-shell .photo-search input {
