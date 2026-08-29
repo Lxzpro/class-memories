@@ -993,6 +993,106 @@
   white-space: nowrap;
 }
 
+.photo-order-control {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto minmax(360px, 520px) 44px;
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(23, 43, 69, 0.07);
+}
+
+.photo-order-label {
+  color: #596773;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.photo-order-options {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(23, 43, 69, 0.08);
+  border-radius: 999px;
+  background: #f2f1ed;
+}
+
+.photo-order-options button,
+.photo-reshuffle-button {
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: #5d6873;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.photo-order-options button {
+  overflow: hidden;
+  padding: 0 10px;
+  border-radius: 999px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.photo-order-options button:hover,
+.photo-order-options button.active {
+  background: white;
+  color: #2769ad;
+  box-shadow: 0 5px 14px rgba(43, 57, 76, 0.08);
+}
+
+.photo-order-options button.active {
+  font-weight: 700;
+}
+
+.photo-reshuffle-button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(77, 145, 235, 0.18);
+  border-radius: 50%;
+  background: var(--memory-blue-soft);
+  color: var(--memory-blue);
+}
+
+.photo-reshuffle-button:hover:not(:disabled) {
+  background: white;
+  box-shadow: 0 7px 18px rgba(43, 57, 76, 0.1);
+}
+
+.photo-reshuffle-button:disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
+}
+
+.photo-reshuffle-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.photo-order-options button:focus-visible,
+.photo-reshuffle-button:focus-visible {
+  outline: 3px solid rgba(65, 142, 232, 0.22);
+  outline-offset: 2px;
+}
+
 .photo-wall {
   column-count: 4;
   column-gap: 18px;
@@ -1982,6 +2082,21 @@
 
   .result-count {
     display: none;
+  }
+
+  .photo-order-control {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 8px;
+    padding-top: 9px;
+  }
+
+  .photo-order-label {
+    display: none;
+  }
+
+  .photo-order-options button {
+    padding-inline: 6px;
+    font-size: 11px;
   }
 
   .photo-wall {

@@ -1,10 +1,15 @@
+import { randomUUID } from "node:crypto";
 import { PhotoWall } from "@/components/photo-wall";
 import { requireApprovedUser } from "@/lib/auth";
 import { DEMO_MODE } from "@/lib/config";
+import { parsePhotoOrder } from "@/lib/photo-order";
 import { getFavoritePhotoIds, getVisibleVideos } from "@/lib/photos";
 
 type VideosPageProps = {
-  searchParams: Promise<{ open?: string | string[] }>;
+  searchParams: Promise<{
+    open?: string | string[];
+    order?: string | string[];
+  }>;
 };
 
 export default async function VideosPage({ searchParams }: VideosPageProps) {
@@ -13,7 +18,9 @@ export default async function VideosPage({ searchParams }: VideosPageProps) {
     getVisibleVideos(user),
     getFavoritePhotoIds(user),
   ]);
-  const open = (await searchParams).open;
+  const params = await searchParams;
+  const open = params.open;
+  const order = parsePhotoOrder(params.order);
 
   return (
     <div className="photos-page videos-page">
@@ -28,6 +35,8 @@ export default async function VideosPage({ searchParams }: VideosPageProps) {
         photos={videos}
         variant="video"
         initialFavoriteIds={favoriteIds}
+        initialOrder={order}
+        shuffleSeed={randomUUID()}
         demoMode={DEMO_MODE}
         viewerId={user.id}
         initialSelectedId={typeof open === "string" ? open : null}

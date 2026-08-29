@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { MemberHomeBoard } from "@/components/member-home-board";
 import { requireApprovedUser } from "@/lib/auth";
 import { getVisiblePhotos } from "@/lib/photos";
@@ -12,6 +13,7 @@ export default async function MemoriesPage() {
       photos={photos}
       displayName={getPublicProfileName(user)}
       viewerId={user.id}
+      shuffleSeed={randomUUID()}
     />
   );
 }

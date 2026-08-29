@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PhotoOrderControl } from "@/components/photo-order-control";
 import { PrivacyRequestDialog } from "@/components/privacy-request-dialog";
 import { UploaderFilter } from "@/components/uploader-filter";
 import { UserAvatar } from "@/components/user-avatar";
@@ -12,6 +13,7 @@ import {
   filterPhotos,
   type UploaderFilterValue,
 } from "@/lib/photo-filter";
+import { orderPhotos, type PhotoOrder } from "@/lib/photo-order";
 import type { Photo, PhotoComment } from "@/types/domain";
 
 const wallCopy = {
@@ -51,6 +53,8 @@ type Props = {
   initialLimit?: number;
   initialSelectedId?: string | null;
   initialFavoriteIds?: string[];
+  initialOrder: PhotoOrder;
+  shuffleSeed: string;
   demoMode?: boolean;
   viewerId?: string;
 };
@@ -61,6 +65,8 @@ export function PhotoWall({
   initialLimit = 12,
   initialSelectedId = null,
   initialFavoriteIds = [],
+  initialOrder,
+  shuffleSeed,
   demoMode = false,
   viewerId,
 }: Props) {
@@ -69,6 +75,8 @@ export function PhotoWall({
   const [query, setQuery] = useState("");
   const [uploader, setUploader] = useState<UploaderFilterValue>(ALL_UPLOADERS);
   const [limit, setLimit] = useState(initialLimit);
+  const [order, setOrder] = useState<PhotoOrder>(initialOrder);
+  const [randomSeed, setRandomSeed] = useState(shuffleSeed);
   const [selectedId, setSelectedId] = useState<string | null>(() =>
     photos.some((photo) => photo.id === initialSelectedId)
       ? initialSelectedId
@@ -85,9 +93,13 @@ export function PhotoWall({
   const modalCloseRef = useRef<HTMLButtonElement>(null);
   const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
   const commentLoadVersion = useRef<Record<string, number>>({});
+  const orderedPhotos = useMemo(
+    () => orderPhotos(photos, order, randomSeed),
+    [order, photos, randomSeed],
+  );
   const filtered = useMemo(
-    () => filterPhotos(photos, query, uploader, viewerId),
-    [photos, query, uploader, viewerId],
+    () => filterPhotos(orderedPhotos, query, uploader, viewerId),
+    [orderedPhotos, query, uploader, viewerId],
   );
   const visible = filtered.slice(0, limit);
   const selectedIndex = filtered.findIndex((photo) => photo.id === selectedId);
@@ -179,6 +191,30 @@ export function PhotoWall({
   const closePrivacyRequest = useCallback(() => {
     setPrivacyRequestPhoto(null);
   }, []);
+
+  const changeOrder = useCallback(
+    (nextOrder: PhotoOrder) => {
+      setOrder(nextOrder);
+      setLimit(initialLimit);
+
+      const url = new URL(window.location.href);
+      url.searchParams.set("order", nextOrder);
+      if (!selectedId) url.searchParams.delete("open");
+      window.history.replaceState(
+        null,
+        "",
+        `${url.pathname}${url.search}${url.hash}`,
+      );
+    },
+    [initialLimit, selectedId],
+  );
+
+  const reshuffle = useCallback(() => {
+    const freshSeed = globalThis.crypto?.randomUUID?.()
+      ?? `${Date.now()}-${Math.random()}`;
+    setRandomSeed((currentSeed) => `${currentSeed}:${freshSeed}`);
+    setLimit(initialLimit);
+  }, [initialLimit]);
 
   useEffect(() => {
     function keydown(event: KeyboardEvent) {
@@ -329,6 +365,12 @@ export function PhotoWall({
           }}
         />
         <span className="result-count">{filtered.length} {copy.resultUnit}</span>
+        <PhotoOrderControl
+          order={order}
+          mediaLabel={variant === "video" ? "视频" : "照片"}
+          onChange={changeOrder}
+          onReshuffle={reshuffle}
+        />
       </div>
 
       {visible.length ? (

@@ -9,6 +9,7 @@ import {
   filterPhotos,
   type UploaderFilterValue,
 } from "@/lib/photo-filter";
+import { orderPhotos } from "@/lib/photo-order";
 import type { Photo, PhotoComment } from "@/types/domain";
 
 function stableTime(value: string) {
@@ -20,10 +21,12 @@ export function MemberHomeBoard({
   photos,
   displayName,
   viewerId,
+  shuffleSeed,
 }: {
   photos: Photo[];
   displayName: string;
   viewerId: string;
+  shuffleSeed: string;
 }) {
   const [query, setQuery] = useState("");
   const [uploader, setUploader] = useState<UploaderFilterValue>(ALL_UPLOADERS);
@@ -31,13 +34,20 @@ export function MemberHomeBoard({
   const [commentText, setCommentText] = useState("");
   const [commentError, setCommentError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const featured = photos[0] ?? null;
+  const randomizedPhotos = useMemo(
+    () => orderPhotos(photos, "random", shuffleSeed),
+    [photos, shuffleSeed],
+  );
+  const featured = randomizedPhotos[2] ?? randomizedPhotos[0] ?? null;
 
   const visiblePhotos = useMemo(() => {
-    return filterPhotos(photos, query, uploader, viewerId);
-  }, [photos, query, uploader, viewerId]);
+    return filterPhotos(randomizedPhotos, query, uploader, viewerId);
+  }, [query, randomizedPhotos, uploader, viewerId]);
 
-  const mobilePhotos = visiblePhotos.slice(0, 8);
+  const mobilePhotoPool = visiblePhotos.filter(
+    (photo) => photo.id !== featured?.id,
+  );
+  const mobilePhotos = mobilePhotoPool.slice(0, 8);
   useEffect(() => {
     if (!featured) return;
     const controller = new AbortController();
@@ -129,7 +139,7 @@ export function MemberHomeBoard({
         )}
 
         <div className="memory-collage" aria-label="班级回忆精选">
-          {photos.slice(0, 6).map((photo, index) => (
+          {randomizedPhotos.slice(0, 6).map((photo, index) => (
             <Link
               href={`/photos?open=${photo.id}`}
               className={`memory-polaroid memory-polaroid-${index + 1}`}
@@ -209,7 +219,7 @@ export function MemberHomeBoard({
               <span>⌖ {photo.location || "地点记不清了"}</span>
             </Link>
           ))}
-          {visiblePhotos.length > mobilePhotos.length && (
+          {mobilePhotoPool.length > mobilePhotos.length && (
             <Link className="mobile-memory-more" href="/photos">
               查看全部 {visiblePhotos.length} 张照片 →
             </Link>
