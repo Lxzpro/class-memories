@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { BrandLogo } from "@/components/brand-logo";
 import { AdminNavigation } from "@/components/admin-navigation";
+import { UserAvatar } from "@/components/user-avatar";
 import "./admin.css";
 import "./admin-redesign.css";
 import "./reference-admin.css";
@@ -33,7 +34,9 @@ export default async function AdminLayout({
             ← 返回班级相册
           </Link>
           <div className="admin-user">
-            <i>{admin.displayName.slice(0, 1)}</i>
+            <i>
+              <UserAvatar user={admin} size={38} />
+            </i>
             <span>
               <b>{admin.displayName}</b>
               <small>管理员</small>

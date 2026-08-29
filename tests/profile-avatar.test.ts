@@ -154,6 +154,33 @@ describe("profile avatar routes", () => {
     });
   });
 
+  it("redirects a numeric QQ email to its default avatar", async () => {
+    const { GET } = await import("@/app/api/profile/avatar/route");
+    const response = await GET(
+      new Request("http://localhost/api/profile/avatar"),
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(
+      "https://q1.qlogo.cn/g?b=qq&nk=123456789&s=640",
+    );
+    expect(mocks.createReadUrl).not.toHaveBeenCalled();
+  });
+
+  it("can force the QQ default without reading a custom avatar", async () => {
+    mocks.getApiMember.mockResolvedValue({ ...user, avatarKey: AVATAR_KEY });
+    const { GET } = await import("@/app/api/profile/avatar/route");
+    const response = await GET(
+      new Request("http://localhost/api/profile/avatar?default=qq"),
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(
+      "https://q1.qlogo.cn/g?b=qq&nk=123456789&s=640",
+    );
+    expect(mocks.createReadUrl).not.toHaveBeenCalled();
+  });
+
   it("never signs a foreign storage key and falls back to the numeric QQ avatar", async () => {
     mocks.getApiMember.mockResolvedValue({
       ...user,

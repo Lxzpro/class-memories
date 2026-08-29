@@ -1,3 +1,25 @@
+.admin-shell .user-avatar {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+  isolation: isolate;
+}
+
+.admin-shell .user-avatar-fallback {
+  position: relative;
+  z-index: 0;
+}
+
+.admin-shell .user-avatar-image {
+  z-index: 1;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
 .admin-cloud-state {
   min-height: 38px;
   display: inline-flex;

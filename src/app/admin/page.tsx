@@ -14,7 +14,12 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       initialData={data}
       initialTab={initialTab}
       demoMode={DEMO_MODE}
-      adminName={admin.displayName}
+      admin={{
+        id: admin.id,
+        email: admin.email,
+        displayName: admin.displayName,
+        avatarKey: admin.avatarKey,
+      }}
     />
   );
 }

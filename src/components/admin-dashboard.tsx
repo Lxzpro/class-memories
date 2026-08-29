@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AdminOverview } from "@/components/admin-overview";
+import { UserAvatar } from "@/components/user-avatar";
 import type { AdminDashboardData, AdminInviteView } from "@/lib/admin-data";
 import { MEDIA_INPUT_ACCEPT, mediaTypeForFile, prepareMedia, validateMediaFile } from "@/lib/client-media";
 import type { MediaType, Photo, PhotoVisibility, Profile } from "@/types/domain";
@@ -43,12 +44,12 @@ export function AdminDashboard({
   initialData,
   initialTab = "overview",
   demoMode = false,
-  adminName = "管理员",
+  admin,
 }: {
   initialData: AdminDashboardData;
   initialTab?: string;
   demoMode?: boolean;
-  adminName?: string;
+  admin: Pick<Profile, "id" | "email" | "displayName" | "avatarKey">;
 }) {
   const tab = initialTab as Tab;
   const [photos, setPhotos] = useState(initialData.photos);
@@ -524,10 +525,12 @@ export function AdminDashboard({
             <i className="admin-demo-dot" />
             {demoMode ? "演示数据" : "R2 私有存储"}
           </span>
-          <span className="admin-topbar-user" aria-label={`当前管理员 ${adminName}`}>
-            <i>{adminName.slice(0, 1)}</i>
+          <span className="admin-topbar-user" aria-label={`当前管理员 ${admin.displayName}`}>
+            <i>
+              <UserAvatar user={admin} size={44} />
+            </i>
             <span>
-              <b>{adminName}</b>
+              <b>{admin.displayName}</b>
               <small>管理员</small>
             </span>
           </span>
