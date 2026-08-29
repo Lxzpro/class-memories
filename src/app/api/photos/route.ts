@@ -65,15 +65,15 @@ export async function POST(request: Request) {
 
     if (photo.peopleIds.length > 0) {
       const uniquePeopleIds = [...new Set(photo.peopleIds)];
-      const { data: preferences } = await supabase
+      const { data: profiles } = await supabase
         .from("profiles")
-        .select("id,require_tag_approval")
+        .select("id")
         .in("id", uniquePeopleIds)
         .eq("status", "approved");
-      const people = (preferences ?? []).map((profile) => ({
+      const people = (profiles ?? []).map((profile) => ({
         photo_id: photo.id,
         user_id: profile.id,
-        consent_status: profile.require_tag_approval ? "pending" : "approved",
+        consent_status: "approved",
       }));
       if (people.length > 0) {
         const { error: peopleError } = await supabase.from("photo_people").insert(people);

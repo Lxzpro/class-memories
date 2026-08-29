@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { DEMO_MODE } from "@/lib/config";
 
 const palettes = [
   ["#bdd2d8", "#eef0df", "#879989"], ["#a9c4d0", "#dce8e5", "#bd9f75"],
@@ -7,6 +8,9 @@ const palettes = [
 ] as const;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!DEMO_MODE) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
   const parsed = Number((await params).id);
   const id = Number.isFinite(parsed) ? Math.max(1, Math.min(22, parsed)) : 1;
   const palette = palettes[(id - 1) % palettes.length];

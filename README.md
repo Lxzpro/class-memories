@@ -2,7 +2,7 @@
 
 一个只服务于一个高中班级的私人照片纪念网站。照片不按高一、高二或具体日期排列，而是通过地点、人物、标签和一句回忆重新相遇。
 
-网站默认以完整的本地演示模式运行；配置 Supabase 和 Cloudflare R2 后，可切换到真实私有存储，并部署到 Vercel。
+项目使用 Supabase 和 Cloudflare R2 保存真实班级数据，并通过 Vercel 部署。生产环境不会回退到模拟数据；缺少必要配置时会直接报错。
 
 ## 已实现的第一版
 
@@ -12,11 +12,11 @@
 - 标题、人物、地点搜索和标签筛选
 - 照片详情、键盘切换、手机滑动、收藏、留言和受控原图下载
 - 华丽洗牌随机回忆和模拟相机显影
-- 我的收藏、人物标记确认、隐私申请，以及动画和声音偏好
+- 我的收藏、人物标记、隐藏或删除申请，以及动画和声音偏好
 - 已审核成员可向私有 R2 上传照片，照片以草稿进入管理员审核后再发布
 - 管理员概览、可重试批量上传、成员/隐私审核、照片故事与权限、邀请码和操作记录
 - Supabase PostgreSQL 迁移、RLS、邀请兑换事务函数
-- `LocalMockStorageAdapter` 与 `R2StorageAdapter`
+- 私有 R2 存储适配器与仅限开发测试使用的本地替身
 - 私有 R2 预签名上传、读取和删除接口
 - 单元测试、类型检查、ESLint 和生产构建脚本
 
@@ -33,7 +33,7 @@ Next.js App Router（Vercel）
 
 数据库只保存 R2 的对象 Key。任何照片读取链接都必须在服务端完成成员身份和照片权限验证后，才会生成短时有效的预签名 URL。
 
-## 本地演示
+## 本地开发
 
 需要 Node.js 22 或更高版本。
 
@@ -42,46 +42,11 @@ npm install
 npm run dev
 ```
 
-打开 `http://localhost:3000`。
-
-演示口令：
-
-```text
-SHIGUANG-2026
-```
-
-演示同学账号：
-
-```text
-member@demo.local
-Member123!
-```
-
-演示管理员账号：
-
-```text
-admin@demo.local
-Admin123!
-```
-
-演示待审核账号：
-
-```text
-pending@demo.local
-Pending123!
-```
-
-演示模式中的上传、审核和邀请码操作不会写入云端。
+打开 `http://localhost:3000`。建议在本地连接独立的 Supabase 开发项目和 R2 测试 Bucket，不要复用生产密钥。
 
 ## 环境变量
 
-复制 `.env.example` 为 `.env.local`。初次开发保留：
-
-```env
-STORAGE_DRIVER=mock
-```
-
-切换真实模式需要填写：
+复制 `.env.example` 为 `.env.local`，并填写：
 
 ```env
 STORAGE_DRIVER=r2
@@ -164,7 +129,7 @@ avatars/{userId}.webp
 1. 把项目推送到自己的 Git 仓库。
 2. 在 Vercel 中导入仓库。
 3. 将 `.env.example` 中的变量分别配置到 Development、Preview 和 Production。
-4. Production 设置 `STORAGE_DRIVER=r2`；Preview 在接入真实数据前建议继续使用 `mock`。
+4. Production 和正式验收用的 Preview 均设置 `STORAGE_DRIVER=r2`。
 5. Build Command 使用 `npm run build`。
 6. 部署完成后，把正式域名加入 R2 CORS 的 `AllowedOrigins`。
 7. 把 `NEXT_PUBLIC_APP_URL` 更新为正式 HTTPS 域名并重新部署。
@@ -191,11 +156,11 @@ npm run check
 每张照片支持四种范围：
 
 - `class`：所有已审核同学可见
-- `tagged_people`：照片中已确认的人可见
+- `tagged_people`：照片中被标记的人可见
 - `selected`：管理员指定的同学可见
 - `private`：上传者和管理员可见
 
-任何被标记同学拒绝展示后，普通成员都无法读取这张照片。权限不仅应用于页面，也应用于搜索、随机回忆、图片签名、留言和原图下载接口。
+人物标记上传后直接生效；同学仍可提交隐藏或删除申请，由管理员处理。权限不仅应用于页面，也应用于搜索、随机回忆、图片签名、留言和原图下载接口。
 
 ## 数据备份
 
@@ -212,12 +177,12 @@ npm run check
 src/app/                  页面和后端 Route Handlers
 src/components/           用户端、随机回忆和管理端交互
 src/lib/authz.ts          照片权限核心规则
-src/lib/storage/          Mock 与 R2 存储适配器
+src/lib/storage/          R2 存储与本地开发适配器
 supabase/migrations/      PostgreSQL、RLS 和函数
 tests/                    核心权限与交互单元测试
 ```
 
-## 从演示切换到真实模式
+## 正式上线检查
 
 切换前必须同时满足：
 
@@ -226,6 +191,7 @@ tests/                    核心权限与交互单元测试
 3. 私有 R2 Bucket 和限定权限 Token 已创建。
 4. 所有服务端环境变量已经配置。
 5. 正式域名已经加入 R2 CORS。
-6. `STORAGE_DRIVER` 已从 `mock` 改为 `r2`。
+6. `STORAGE_DRIVER` 已设置为 `r2`。
+7. 登录页、邀请页和待审核页不显示任何测试账号或示例口令。
 
-缺少任何一项时，请继续使用演示模式，不要把 R2 Bucket 临时改为公开。
+缺少任何一项时不要上线，也不要把 R2 Bucket 临时改为公开。生产环境不会自动切换到本地模拟数据。

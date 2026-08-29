@@ -12,7 +12,6 @@ export interface Profile {
   role: UserRole;
   status: UserStatus;
   showRealName: boolean;
-  requireTagApproval: boolean;
   allowOriginalDownload: boolean;
   createdAt: string;
 }

@@ -3,7 +3,9 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 function secret(): string {
   const configured = process.env.AUTH_SECRET;
   if (configured && configured.length >= 32) return configured;
-  if (process.env.STORAGE_DRIVER === "r2") throw new Error("AUTH_SECRET 尚未配置，或长度不足 32 个字符");
+  if (process.env.NODE_ENV === "production" || process.env.STORAGE_DRIVER === "r2") {
+    throw new Error("AUTH_SECRET 尚未配置，或长度不足 32 个字符");
+  }
   return "demo-only-secret-change-before-production";
 }
 

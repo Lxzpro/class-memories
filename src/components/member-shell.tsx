@@ -52,13 +52,28 @@ export function MemberShell({
           <br />
           只按记忆。
         </p>
-        <Link
-          className="member-mobile-profile"
-          href="/profile"
-          aria-label="进入我的页面"
-        >
-          {initial}
-        </Link>
+        <div className="member-mobile-actions">
+          {user.role === "admin" && (
+            <Link
+              className="member-mobile-admin"
+              href="/admin"
+              aria-label="进入管理员界面"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3 19 6v5c0 4.6-2.8 8.2-7 10-4.2-1.8-7-5.4-7-10V6l7-3Z" />
+                <path d="M9 12h6M12 9v6" />
+              </svg>
+              <small>管理</small>
+            </Link>
+          )}
+          <Link
+            className="member-mobile-profile"
+            href="/profile"
+            aria-label="进入我的页面"
+          >
+            {initial}
+          </Link>
+        </div>
       </aside>
 
       <header className="member-topbar">

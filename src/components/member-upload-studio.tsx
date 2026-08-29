@@ -584,7 +584,7 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
                     <span aria-hidden="true">＋</span>
                   </div>
                   <fieldset className="member-upload-people">
-                    <legend>照片或视频中的同学 <small>选填；对方可能需要确认</small></legend>
+                    <legend>照片或视频中的同学 <small>选填；用于按人物查找</small></legend>
                     <div>
                       {members.map((member) => (
                         <label key={member.id}>

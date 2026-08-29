@@ -128,10 +128,6 @@ button, input { font: inherit; }
 .form-error { background: rgba(178,100,86,.1); color: #985f54; }
 .form-success { background: rgba(133,158,124,.13); color: #667c60; }
 .field-note { margin: -4px 0 5px; color: #8c969a; font-size: 9px; }
-.demo-hint { margin: 4px 0 0; color: #8b969a; text-align: center; font-size: 9px; }
-.demo-hint button { padding: 6px; border: 0; background: transparent; color: #728b9b; cursor: pointer; text-decoration: underline; }
-.demo-accounts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
-.demo-accounts button { min-height: 40px; border: 1px dashed rgba(38,50,58,.18); border-radius: 10px; background: transparent; color: #728188; cursor: pointer; font-size: 9px; }
 .auth-footer { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); color: #879195; text-align: center; font-size: 11px; }
 .auth-footer a { margin-left: 5px; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .auth-privacy { position: absolute; bottom: 28px; margin: 0; color: #909a9e; font-size: 9px; letter-spacing: .04em; }

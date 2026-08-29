@@ -14,8 +14,8 @@ export async function POST(request: Request) {
     const { error } = await supabase.from("photos").insert({ id: photo.id, title: photo.title, description: photo.description, original_key: photo.originalKey, preview_key: photo.previewKey, thumbnail_key: photo.thumbnailKey, width: photo.width, height: photo.height, location: photo.location, visibility: photo.visibility, download_allowed: photo.downloadAllowed, review_status: "published", uploaded_by: admin.id });
     if (error) return Response.json({ error: "媒体资料保存失败。" }, { status: 500 });
     if (photo.peopleIds.length) {
-      const { data: preferences } = await supabase.from("profiles").select("id,require_tag_approval").in("id", [...new Set(photo.peopleIds)]).eq("status", "approved");
-      const people = (preferences ?? []).map((profile) => ({ photo_id: photo.id, user_id: profile.id, consent_status: profile.require_tag_approval ? "pending" : "approved" }));
+      const { data: profiles } = await supabase.from("profiles").select("id").in("id", [...new Set(photo.peopleIds)]).eq("status", "approved");
+      const people = (profiles ?? []).map((profile) => ({ photo_id: photo.id, user_id: profile.id, consent_status: "approved" }));
       if (people.length) {
         const { error: peopleError } = await supabase.from("photo_people").insert(people);
         if (peopleError) { await supabase.from("photos").delete().eq("id", photo.id); return Response.json({ error: "人物关联保存失败。" }, { status: 500 }); }

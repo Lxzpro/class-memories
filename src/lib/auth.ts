@@ -17,7 +17,7 @@ function mapProfile(row: Record<string, unknown>): Profile {
     avatarKey: row.avatar_key ? String(row.avatar_key) : null,
     role: row.role === "admin" ? "admin" : "member",
     status: row.status === "approved" ? "approved" : row.status === "rejected" ? "rejected" : "pending",
-    showRealName: Boolean(row.show_real_name), requireTagApproval: Boolean(row.require_tag_approval),
+    showRealName: Boolean(row.show_real_name),
     allowOriginalDownload: Boolean(row.allow_original_download), createdAt: String(row.created_at),
   };
 }

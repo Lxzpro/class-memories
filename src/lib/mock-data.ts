@@ -5,27 +5,27 @@ import type { Photo, PhotoComment, Profile } from "@/types/domain";
 export const MOCK_PROFILES: Profile[] = [
   {
     id: "user-admin", email: "admin@demo.local", displayName: "林老师", avatarKey: null,
-    role: "admin", status: "approved", showRealName: true, requireTagApproval: false,
+    role: "admin", status: "approved", showRealName: true,
     allowOriginalDownload: true, createdAt: "2026-01-02T08:00:00.000Z",
   },
   {
     id: "user-member", email: "member@demo.local", displayName: "夏宁", avatarKey: null,
-    role: "member", status: "approved", showRealName: true, requireTagApproval: true,
+    role: "member", status: "approved", showRealName: true,
     allowOriginalDownload: true, createdAt: "2026-01-03T08:00:00.000Z",
   },
   {
     id: "user-lin", email: "lin@demo.local", displayName: "林澈", avatarKey: null,
-    role: "member", status: "approved", showRealName: false, requireTagApproval: true,
+    role: "member", status: "approved", showRealName: false,
     allowOriginalDownload: false, createdAt: "2026-01-04T08:00:00.000Z",
   },
   {
     id: "user-zhou", email: "zhou@demo.local", displayName: "周予安", avatarKey: null,
-    role: "member", status: "approved", showRealName: true, requireTagApproval: false,
+    role: "member", status: "approved", showRealName: true,
     allowOriginalDownload: true, createdAt: "2026-01-05T08:00:00.000Z",
   },
   {
     id: "user-pending", email: "pending@demo.local", displayName: "待审核同学", avatarKey: null,
-    role: "member", status: "pending", showRealName: true, requireTagApproval: true,
+    role: "member", status: "pending", showRealName: true,
     allowOriginalDownload: false, createdAt: "2026-08-20T08:00:00.000Z",
   },
 ];

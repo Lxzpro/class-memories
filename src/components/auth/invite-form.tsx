@@ -26,7 +26,6 @@ export function InviteForm() {
       <div className="invite-input-wrap"><input id="invite-code" value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="输入管理员发给你的口令" autoComplete="one-time-code" required /><span aria-hidden="true">•••</span></div>
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="form-submit" type="submit" disabled={loading}>{loading ? "正在验证…" : "验证口令并继续"}<span aria-hidden="true">→</span></button>
-      <p className="demo-hint">演示口令：<button type="button" onClick={() => setCode("SHIGUANG-2026")}>SHIGUANG-2026</button></p>
     </form>
   );
 }

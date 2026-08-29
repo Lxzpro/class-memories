@@ -20,11 +20,6 @@ export function LoginForm() {
     finally { setLoading(false); }
   }
 
-  function fillDemo(kind: "member" | "admin") {
-    setEmail(kind === "admin" ? "admin@demo.local" : "member@demo.local");
-    setPassword(kind === "admin" ? "Admin123!" : "Member123!");
-  }
-
   return (
     <form className="auth-form" onSubmit={submit}>
       <label htmlFor="email">邮箱</label><input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
@@ -32,7 +27,6 @@ export function LoginForm() {
       <input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="form-submit" type="submit" disabled={loading}>{loading ? "正在登录…" : "登录班级相册"}<span aria-hidden="true">→</span></button>
-      <div className="demo-accounts"><button type="button" onClick={() => fillDemo("member")}>填入同学账号</button><button type="button" onClick={() => fillDemo("admin")}>填入管理员账号</button></div>
     </form>
   );
 }

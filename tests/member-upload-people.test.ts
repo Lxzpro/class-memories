@@ -23,8 +23,8 @@ vi.mock("@/lib/supabase/server", () => ({
             in: vi.fn(() => ({
               eq: vi.fn(async () => ({
                 data: [
-                  { id: "person-confirm", require_tag_approval: true },
-                  { id: "person-auto", require_tag_approval: false },
+                  { id: "person-one" },
+                  { id: "person-two" },
                 ],
               })),
             })),
@@ -38,7 +38,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 describe("member upload people associations", () => {
-  it("honors each tagged classmate's confirmation preference", async () => {
+  it("creates tagged classmate associations without confirmation", async () => {
     const id = "018f0f65-6748-7d19-9f52-111f6bc4278c";
     const keys = createMemberUploadKeys("member-123", id, "video/mp4");
     const { POST } = await import("@/app/api/photos/route");
@@ -58,14 +58,14 @@ describe("member upload people associations", () => {
         previewKey: keys.preview,
         thumbnailKey: keys.thumbnail,
         tags: [],
-        peopleIds: ["person-confirm", "person-auto"],
+        peopleIds: ["person-one", "person-two"],
       }),
     }));
 
     expect(response.status).toBe(201);
     expect(mocks.insertPeople).toHaveBeenCalledWith([
-      { photo_id: id, user_id: "person-confirm", consent_status: "pending" },
-      { photo_id: id, user_id: "person-auto", consent_status: "approved" },
+      { photo_id: id, user_id: "person-one", consent_status: "approved" },
+      { photo_id: id, user_id: "person-two", consent_status: "approved" },
     ]);
   });
 });

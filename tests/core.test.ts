@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canAccessMemberArea, canManageSite, canViewPhoto, filterVisiblePhotos } from "@/lib/authz";
 import { toggleFavoriteIds } from "@/lib/favorites";
-import { DEMO_MODE, getMissingProductionEnv } from "@/lib/config";
+import { DEMO_MODE, getMissingProductionEnv, shouldUseDemoMode } from "@/lib/config";
 import { evaluateInvite } from "@/lib/invites";
 import { filterPhotos } from "@/lib/photo-filter";
 import { chooseRandomId, pushRecentId } from "@/lib/random";
@@ -9,7 +9,7 @@ import { checkRateLimit, resetRateLimit } from "@/lib/security/rate-limit";
 import { hashInviteCode, signToken, verifyToken } from "@/lib/security/tokens";
 import type { InviteCodeRecord, Photo, Profile } from "@/types/domain";
 
-const member: Profile = { id: "member", email: "m@example.com", displayName: "同学", avatarKey: null, role: "member", status: "approved", showRealName: true, requireTagApproval: true, allowOriginalDownload: true, createdAt: "2026-01-01" };
+const member: Profile = { id: "member", email: "m@example.com", displayName: "同学", avatarKey: null, role: "member", status: "approved", showRealName: true, allowOriginalDownload: true, createdAt: "2026-01-01" };
 const admin: Profile = { ...member, id: "admin", role: "admin" };
 const pending: Profile = { ...member, id: "pending", status: "pending" };
 const basePhoto: Photo = { id: "photo", title: "操场合照", description: "运动会", originalKey: "originals/photo/x.jpg", previewKey: "previews/photo.webp", thumbnailKey: "thumbnails/photo.webp", mediaType: "photo", mediaUrl: "/preview", previewUrl: "/preview", thumbnailUrl: "/thumb", width: 1200, height: 900, location: "操场", people: [], tags: ["操场", "运动会"], visibility: "class", selectedUserIds: [], downloadAllowed: true, reviewStatus: "published", uploadedBy: "admin", createdAt: "2026-01-01" };
@@ -84,5 +84,10 @@ describe("credential-free development", () => {
     expect(DEMO_MODE).toBe(true);
     expect(getMissingProductionEnv()).toContain("NEXT_PUBLIC_SUPABASE_URL");
     expect(getMissingProductionEnv()).toContain("R2_SECRET_ACCESS_KEY");
+  });
+
+  it("never falls back to demo data in production", () => {
+    expect(shouldUseDemoMode({ NODE_ENV: "production" })).toBe(false);
+    expect(shouldUseDemoMode({ NODE_ENV: "development" })).toBe(true);
   });
 });

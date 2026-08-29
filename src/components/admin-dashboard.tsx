@@ -351,9 +351,7 @@ export function AdminDashboard({
       return {
         id,
         name: profile?.displayName ?? "班级成员",
-        consentStatus: profile?.requireTagApproval
-          ? ("pending" as const)
-          : ("approved" as const),
+        consentStatus: "approved" as const,
       };
     });
     setPhotos((current) =>

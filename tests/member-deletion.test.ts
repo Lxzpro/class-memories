@@ -48,7 +48,6 @@ const admin: Profile = {
   role: "admin",
   status: "approved",
   showRealName: true,
-  requireTagApproval: false,
   allowOriginalDownload: true,
   createdAt: "2026-01-01",
 };

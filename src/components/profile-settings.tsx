@@ -8,7 +8,7 @@ import type { Photo, Profile } from "@/types/domain";
 
 type Preferences = Pick<
   Profile,
-  "showRealName" | "requireTagApproval" | "allowOriginalDownload"
+  "showRealName" | "allowOriginalDownload"
 > & {
   reduceMotion: boolean;
   soundEnabled: boolean;
@@ -44,7 +44,6 @@ export function ProfileSettings({
   const [privacyReason, setPrivacyReason] = useState(privacyReasons[0]);
   const [preferences, setPreferences] = useState<Preferences>({
     showRealName: user.showRealName,
-    requireTagApproval: user.requireTagApproval,
     allowOriginalDownload: user.allowOriginalDownload,
     reduceMotion: false,
     soundEnabled: false,
@@ -137,11 +136,6 @@ export function ProfileSettings({
       key: "showRealName",
       title: "显示真实姓名",
       note: "关闭后，其他同学只会看到你的昵称。",
-    },
-    {
-      key: "requireTagApproval",
-      title: "被标记后需要我确认",
-      note: "包含你的新照片需经你同意后才能公开。",
     },
     {
       key: "allowOriginalDownload",
