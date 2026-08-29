@@ -76,11 +76,18 @@ function applyDownloadConsent(user: Profile, photos: Photo[], blockedPhotoIds: S
   return photos.map((photo) => ({ ...photo, downloadAllowed: photo.downloadAllowed && !blockedPhotoIds.has(photo.id) }));
 }
 
-export async function getVisiblePhotos(user: Profile): Promise<Photo[]> {
-  if (DEMO_MODE) return applyDemoDownloadConsent(user, filterVisiblePhotos(user, MOCK_PHOTOS));
+async function getVisibleMedia(user: Profile, mediaType?: "video"): Promise<Photo[]> {
+  if (DEMO_MODE) {
+    const visible = filterVisiblePhotos(user, MOCK_PHOTOS);
+    return applyDemoDownloadConsent(user, mediaType ? visible.filter((photo) => photo.mediaType === mediaType) : visible);
+  }
   const supabase = await createSupabaseServerClient();
+  let photosQuery = supabase.from("photos").select("*, photo_people(user_id, consent_status), photo_access(user_id), photo_tags(tags(name))").eq("review_status", "published");
+  if (mediaType === "video") {
+    photosQuery = photosQuery.or("original_key.ilike.%.mp4,original_key.ilike.%.webm");
+  }
   const [{ data, error }, { data: directory }, blockedPhotoIds] = await Promise.all([
-    supabase.from("photos").select("*, photo_people(user_id, consent_status), photo_access(user_id), photo_tags(tags(name))").eq("review_status", "published").order("created_at", { ascending: false }),
+    photosQuery.order("created_at", { ascending: false }),
     supabase.from("member_directory").select("id,display_name"),
     getBlockedDownloadPhotoIds(user),
   ]);
@@ -88,6 +95,14 @@ export async function getVisiblePhotos(user: Profile): Promise<Photo[]> {
   const names = new Map((directory ?? []).map((row) => [String(row.id), String(row.display_name)]));
   const photos = applyDownloadConsent(user, (data ?? []).map((row) => mapPhoto(row as RelatedRow, names)), blockedPhotoIds);
   return Promise.all(photos.map(signPhoto));
+}
+
+export function getVisiblePhotos(user: Profile): Promise<Photo[]> {
+  return getVisibleMedia(user);
+}
+
+export function getVisibleVideos(user: Profile): Promise<Photo[]> {
+  return getVisibleMedia(user, "video");
 }
 
 export async function getVisiblePhoto(user: Profile, id: string): Promise<Photo | null> {

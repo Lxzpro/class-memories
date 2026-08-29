@@ -16,5 +16,6 @@ export const config = {
     "/random/:path*",
     "/reset-password/:path*",
     "/upload/:path*",
+    "/videos/:path*",
   ],
 };

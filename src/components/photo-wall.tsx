@@ -8,8 +8,42 @@ import type { Photo, PhotoComment } from "@/types/domain";
 
 const defaultTags = ["全部", "教室", "操场", "朋友", "搞怪", "毕业", "珍贵"];
 
+const wallCopy = {
+  all: {
+    searchLabel: "搜索照片",
+    searchPlaceholder: "搜索照片、地点、人物、回忆…",
+    filterLabel: "照片标签筛选",
+    resultUnit: "份回忆",
+    openLabel: "查看照片",
+    emptyTitle: "这一页暂时没有照片",
+    emptyDescription: "换一个关键词或标签，再找找看。",
+    loadMore: "还有一些记忆正在显影……",
+    download: "⇩ 下载原图",
+    close: "关闭照片详情",
+    previous: "上一张",
+    next: "下一张",
+    comment: "写一条照片留言",
+  },
+  video: {
+    searchLabel: "搜索视频",
+    searchPlaceholder: "搜索视频、地点、人物、回忆…",
+    filterLabel: "视频标签筛选",
+    resultUnit: "段视频",
+    openLabel: "播放视频",
+    emptyTitle: "这里还没有视频",
+    emptyDescription: "换一个关键词或标签，或者上传第一段视频回忆。",
+    loadMore: "还有一些视频正在加载……",
+    download: "⇩ 下载原视频",
+    close: "关闭视频详情",
+    previous: "上一个视频",
+    next: "下一个视频",
+    comment: "写一条视频留言",
+  },
+} as const;
+
 type Props = {
   photos: Photo[];
+  variant?: "all" | "video";
   initialLimit?: number;
   initialSelectedId?: string | null;
   initialFavoriteIds?: string[];
@@ -18,11 +52,14 @@ type Props = {
 
 export function PhotoWall({
   photos,
+  variant = "all",
   initialLimit = 12,
   initialSelectedId = null,
   initialFavoriteIds = [],
   demoMode = false,
 }: Props) {
+  const copy = wallCopy[variant];
+  const searchId = variant === "video" ? "video-search" : "photo-search";
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState("全部");
   const [limit, setLimit] = useState(initialLimit);
@@ -157,7 +194,7 @@ export function PhotoWall({
         {favorites.includes(selected.id) ? "♥ 已收藏" : "♡ 收藏"}
       </button>
       {selected.downloadAllowed && (
-        <a href={`/api/photos/${selected.id}/download`}>⇩ 下载原图</a>
+        <a href={`/api/photos/${selected.id}/download`}>{copy.download}</a>
       )}
     </>
   ) : null;
@@ -167,20 +204,20 @@ export function PhotoWall({
       <div className="photo-tools">
         <div className="photo-search">
           <span aria-hidden="true">⌕</span>
-          <label className="sr-only" htmlFor="photo-search">
-            搜索照片
+          <label className="sr-only" htmlFor={searchId}>
+            {copy.searchLabel}
           </label>
           <input
-            id="photo-search"
+            id={searchId}
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
               setLimit(initialLimit);
             }}
-            placeholder="搜索照片、地点、人物、回忆…"
+            placeholder={copy.searchPlaceholder}
           />
         </div>
-        <div className="tag-scroller" aria-label="照片标签筛选">
+        <div className="tag-scroller" aria-label={copy.filterLabel}>
           {defaultTags.map((item) => (
             <button
               key={item}
@@ -195,7 +232,7 @@ export function PhotoWall({
             </button>
           ))}
         </div>
-        <span className="result-count">{filtered.length} 份回忆</span>
+        <span className="result-count">{filtered.length} {copy.resultUnit}</span>
       </div>
 
       {visible.length ? (
@@ -209,7 +246,7 @@ export function PhotoWall({
               <button
                 type="button"
                 onClick={() => setSelectedId(photo.id)}
-                aria-label={`查看照片：${photo.title}`}
+                aria-label={`${copy.openLabel}：${photo.title}`}
               >
                 <div
                   className="wall-image"
@@ -252,8 +289,8 @@ export function PhotoWall({
       ) : (
         <div className="empty-photos">
           <span>⌁</span>
-          <h3>这一页暂时没有照片</h3>
-          <p>换一个关键词或标签，再找找看。</p>
+          <h3>{copy.emptyTitle}</h3>
+          <p>{copy.emptyDescription}</p>
         </div>
       )}
 
@@ -263,7 +300,7 @@ export function PhotoWall({
           type="button"
           onClick={() => setLimit((value) => value + 8)}
         >
-          <span>还有一些记忆正在显影……</span>
+          <span>{copy.loadMore}</span>
           <b>再看一些</b>
         </button>
       )}
@@ -282,7 +319,7 @@ export function PhotoWall({
             className="modal-close"
             type="button"
             onClick={() => setSelectedId(null)}
-            aria-label="关闭照片详情"
+            aria-label={copy.close}
           >
             ×
           </button>
@@ -306,7 +343,7 @@ export function PhotoWall({
                 className="modal-arrow modal-prev"
                 type="button"
                 onClick={() => move(-1)}
-                aria-label="上一张"
+                aria-label={copy.previous}
               >
                 ‹
               </button>
@@ -344,7 +381,7 @@ export function PhotoWall({
                 className="modal-arrow modal-next"
                 type="button"
                 onClick={() => move(1)}
-                aria-label="下一张"
+                aria-label={copy.next}
               >
                 ›
               </button>
@@ -398,7 +435,7 @@ export function PhotoWall({
                 </div>
                 <form onSubmit={submitComment}>
                   <label className="sr-only" htmlFor="comment-text">
-                    写一条照片留言
+                    {copy.comment}
                   </label>
                   <input
                     id="comment-text"

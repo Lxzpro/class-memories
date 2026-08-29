@@ -747,7 +747,7 @@
     backdrop-filter: none;
   }
 
-  .member-mobile-nav a:nth-child(3) > span {
+  .member-mobile-nav a.upload-nav > span {
     width: 58px;
     height: 58px;
     margin-top: -31px;

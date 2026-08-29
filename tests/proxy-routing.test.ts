@@ -23,6 +23,7 @@ describe("Supabase session proxy routing", () => {
     "/random",
     "/reset-password",
     "/upload",
+    "/videos",
   ])("refreshes sessions on protected or session-mutating route %s", (url) => {
     expect(proxyMatches(url)).toBe(true);
   });

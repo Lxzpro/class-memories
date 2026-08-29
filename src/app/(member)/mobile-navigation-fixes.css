@@ -158,7 +158,7 @@
     inset: auto 0 0;
     z-index: 90;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     align-items: stretch;
     padding:
       7px
@@ -223,7 +223,7 @@
     color: var(--reference-blue, #418ee8);
   }
 
-  .member-shell .member-mobile-nav a:nth-child(3) > span {
+  .member-shell .member-mobile-nav a.upload-nav > span {
     width: 52px;
     height: 52px;
     margin-top: -27px;
@@ -234,7 +234,7 @@
     color: white;
   }
 
-  .member-shell .member-mobile-nav a:nth-child(3) small {
+  .member-shell .member-mobile-nav a.upload-nav small {
     margin-top: -1px;
   }
 

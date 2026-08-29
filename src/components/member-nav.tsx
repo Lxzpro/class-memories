@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type IconName = "home" | "photos" | "upload" | "random" | "profile" | "admin";
+type IconName = "home" | "photos" | "video" | "upload" | "random" | "profile" | "admin";
 
 const items: Array<{ href: string; label: string; icon: IconName }> = [
   { href: "/memories", label: "首页", icon: "home" },
   { href: "/photos", label: "照片", icon: "photos" },
   { href: "/upload", label: "上传", icon: "upload" },
+  { href: "/videos", label: "视频", icon: "video" },
   { href: "/random", label: "随机", icon: "random" },
   { href: "/profile", label: "我的", icon: "profile" },
 ];
@@ -27,6 +28,13 @@ function NavIcon({ name }: { name: IconName }) {
           <rect x="3" y="4" width="18" height="16" rx="3" />
           <circle cx="8.2" cy="9" r="1.5" />
           <path d="m5.5 17 4.2-4.2 3.2 3 2.4-2.4 3.2 3.6" />
+        </>
+      )}
+      {name === "video" && (
+        <>
+          <rect x="3" y="5" width="14" height="14" rx="3" />
+          <path d="m17 10 4-2.5v9L17 14" />
+          <path d="m9 9 4 3-4 3Z" />
         </>
       )}
       {name === "upload" && (
@@ -87,7 +95,7 @@ export function MemberNav({ admin = false }: { admin?: boolean }) {
         {items.map((item) => (
           <Link
             key={item.href}
-            className={pathname === item.href ? "active" : ""}
+            className={`${pathname === item.href ? "active" : ""}${item.icon === "upload" ? " upload-nav" : ""}`}
             href={item.href}
             aria-current={pathname === item.href ? "page" : undefined}
           >
