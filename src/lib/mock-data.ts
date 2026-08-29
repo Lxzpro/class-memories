@@ -81,6 +81,8 @@ export const MOCK_PHOTOS: Photo[] = memorySeeds.map((seed, index) => {
     originalKey: `originals/photo-${String(number).padStart(2, "0")}/memory.jpg`,
     previewKey: `previews/photo-${String(number).padStart(2, "0")}.webp`,
     thumbnailKey: `thumbnails/photo-${String(number).padStart(2, "0")}.webp`,
+    mediaType: "photo",
+    mediaUrl: `/api/demo-image/${number}?variant=preview`,
     previewUrl: `/api/demo-image/${number}?variant=preview`,
     thumbnailUrl: `/api/demo-image/${number}?variant=thumbnail`,
     width: widthRatio * 320,

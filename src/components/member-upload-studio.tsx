@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import type { PhotoVisibility } from "@/types/domain";
+import { MEDIA_INPUT_ACCEPT, mediaTypeForFile, prepareMedia, validateMediaFile } from "@/lib/client-media";
+import type { UploadMemberOption } from "@/lib/photos";
+import type { MediaType, PhotoVisibility } from "@/types/domain";
 
 type UploadStatus = "ready" | "preparing" | "uploading" | "submitted" | "error";
 type PreviewStatus = "loading" | "ready" | "error";
@@ -19,27 +21,20 @@ type UploadIconKind =
 type UploadItem = {
   id: string;
   file: File;
+  mediaType: MediaType;
   previewUrl: string;
   previewStatus: PreviewStatus;
   title: string;
   description: string;
   location: string;
   tags: string;
+  peopleIds: string[];
   visibility: Extract<PhotoVisibility, "class" | "private">;
   status: UploadStatus;
   progress: number;
   error?: string;
 };
 
-type DecodedImage = {
-  source: CanvasImageSource;
-  width: number;
-  height: number;
-  release: () => void;
-};
-
-const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-const maxFileSize = 25 * 1024 * 1024;
 const maxQueueSize = 8;
 const suggestedTags = ["日常", "教室", "运动会", "青春", "朋友"];
 
@@ -119,65 +114,7 @@ function UploadIcon({ kind }: { kind: UploadIconKind }) {
   return null;
 }
 
-async function decodeImage(file: File): Promise<DecodedImage> {
-  if (typeof createImageBitmap === "function") {
-    try {
-      const bitmap = await createImageBitmap(file, {
-        imageOrientation: "from-image",
-      });
-      return {
-        source: bitmap,
-        width: bitmap.width,
-        height: bitmap.height,
-        release: () => bitmap.close(),
-      };
-    } catch {
-      // Some mobile browsers expose createImageBitmap but cannot decode every camera JPEG.
-    }
-  }
-
-  const url = URL.createObjectURL(file);
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const element = new window.Image();
-      element.onload = () => resolve(element);
-      element.onerror = () => reject(new Error("浏览器无法读取这张照片"));
-      element.src = url;
-    });
-    return {
-      source: image,
-      width: image.naturalWidth,
-      height: image.naturalHeight,
-      release: () => URL.revokeObjectURL(url),
-    };
-  } catch (error) {
-    URL.revokeObjectURL(url);
-    throw error;
-  }
-}
-
-async function createWebpVariant(
-  image: DecodedImage,
-  maxWidth: number,
-  quality: number,
-) {
-  const scale = Math.min(1, maxWidth / image.width);
-  const width = Math.max(1, Math.round(image.width * scale));
-  const height = Math.max(1, Math.round(image.height * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("浏览器无法处理这张图片");
-  context.drawImage(image.source, 0, 0, width, height);
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/webp", quality),
-  );
-  if (!blob) throw new Error("图片压缩失败");
-  return blob;
-}
-
-export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
+export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; members: UploadMemberOption[] }) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -221,7 +158,8 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
     let rejected = 0;
 
     for (const file of selected) {
-      if (!allowedTypes.has(file.type) || file.size > maxFileSize) {
+      const mediaType = mediaTypeForFile(file);
+      if (!mediaType || validateMediaFile(file)) {
         rejected += 1;
         continue;
       }
@@ -230,12 +168,14 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
       nextItems.push({
         id: crypto.randomUUID(),
         file,
+        mediaType,
         previewUrl,
         previewStatus: "loading",
         title: file.name.replace(/\.[^.]+$/, "").slice(0, 100),
         description: "",
         location: "",
         tags: "",
+        peopleIds: [],
         visibility: batchVisibility,
         status: "ready",
         progress: 0,
@@ -246,13 +186,13 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
     const overflow = Math.max(0, fileList.length - available);
     const messages: string[] = [];
     if (nextItems.length > 0) {
-      messages.push(`已准备 ${nextItems.length} 张照片，预览确认后即可补充资料`);
+      messages.push(`已准备 ${nextItems.length} 份照片或视频，预览确认后即可补充资料`);
     }
     if (rejected > 0) {
-      messages.push(`${rejected} 张格式不支持或超过 25MB`);
+      messages.push(`${rejected} 个文件格式不支持或超过大小限制`);
     }
     if (overflow > 0) {
-      messages.push(`最多同时准备 ${maxQueueSize} 张`);
+      messages.push(`最多同时准备 ${maxQueueSize} 份`);
     }
     setNotice(messages.length > 0 ? `${messages.join("；")}。` : "");
     if (fileInput.current) fileInput.current.value = "";
@@ -285,27 +225,25 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
     updateItem(item.id, { tags: [...tags, tag].join("，") });
   }
 
+  function togglePerson(itemId: string, userId: string) {
+    setItems((current) => current.map((item) => item.id === itemId ? {
+      ...item,
+      peopleIds: item.peopleIds.includes(userId)
+        ? item.peopleIds.filter((id) => id !== userId)
+        : [...item.peopleIds, userId],
+    } : item));
+  }
+
   async function uploadItem(item: UploadItem) {
     if (!item.title.trim()) {
-      updateItem(item.id, { status: "error", error: "请填写照片标题。" });
+      updateItem(item.id, { status: "error", error: "请填写标题。" });
       return false;
     }
 
     updateItem(item.id, { status: "preparing", progress: 8, error: undefined });
     try {
-      const image = await decodeImage(item.file);
-      const width = image.width;
-      const height = image.height;
-      let preview: Blob;
-      let thumbnail: Blob;
-      try {
-        [preview, thumbnail] = await Promise.all([
-          createWebpVariant(image, 1600, 0.84),
-          createWebpVariant(image, 640, 0.78),
-        ]);
-      } finally {
-        image.release();
-      }
+      const prepared = await prepareMedia(item.file);
+      const { width, height, preview, thumbnail, mediaType } = prepared;
       updateItem(item.id, { status: "uploading", progress: 24 });
 
       const signResponse = await fetch("/api/uploads/sign", {
@@ -343,7 +281,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
         }),
       ]);
       if (uploadResponses.some((response) => !response.ok)) {
-        throw new Error("图片上传失败，请检查网络后重试");
+        throw new Error("文件上传失败，请检查网络后重试");
       }
       updateItem(item.id, { progress: 82 });
 
@@ -357,6 +295,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
           location: item.location.trim(),
           width,
           height,
+          mediaType,
           visibility: item.visibility,
           originalKey: signed.keys.original,
           previewKey: signed.keys.preview,
@@ -365,15 +304,16 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
             .split(/[,，]/)
             .map((tag) => tag.trim())
             .filter(Boolean),
+          peopleIds: item.peopleIds,
         }),
       });
       const saved = await saveResponse.json();
       if (!saveResponse.ok) {
-        throw new Error(saved.error || "照片提交失败");
+        throw new Error(saved.error || "媒体提交失败");
       }
 
       updateItem(item.id, { status: "submitted", progress: 100 });
-      setNotice(saved.message || "照片已经提交审核。");
+      setNotice(saved.message || "照片或视频已经提交审核。");
       return true;
     } catch (reason) {
       updateItem(item.id, {
@@ -395,7 +335,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
 
   async function uploadAll() {
     if (previewBlocked) {
-      setNotice("请先等待所有照片显示预览；加载失败的照片可重新加载或移除。");
+      setNotice("请先等待所有媒体显示预览；加载失败的文件可重新加载或移除。");
       return;
     }
     const pending = items.filter(
@@ -414,8 +354,8 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
     if (submitted > 0) {
       setNotice(
         demoMode
-          ? `已模拟提交 ${submitted} 张照片；演示模式不会写入 R2 或数据库。`
-          : `已提交 ${submitted} 张照片，管理员审核通过后会出现在相册中。`,
+          ? `已模拟提交 ${submitted} 份媒体；演示模式不会写入 R2 或数据库。`
+          : `已提交 ${submitted} 份照片或视频，管理员审核通过后会出现在相册中。`,
       );
     }
   }
@@ -429,8 +369,8 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
         <div className="member-upload-toolbar">
           <div>
             <p>MEMORY CONTRIBUTION</p>
-            <h2 id="upload-studio-title">选择你想留下的照片</h2>
-            <span>JPG / PNG / WebP · 单张不超过 25MB · 最多 8 张</span>
+            <h2 id="upload-studio-title">选择你想留下的照片或视频</h2>
+            <span>图片不超过 25MB · MP4 / WebM 不超过 200MB · 最多 8 份</span>
           </div>
           <b>
             {items.length} / {maxQueueSize}
@@ -442,8 +382,8 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
           className="sr-only"
           type="file"
           multiple
-          accept="image/jpeg,image/png,image/webp"
-          aria-label="从设备选择照片"
+          accept={MEDIA_INPUT_ACCEPT}
+          aria-label="从设备选择照片或视频"
           onChange={(event) => addFiles(event.target.files)}
         />
         <input
@@ -463,7 +403,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
             onClick={() => fileInput.current?.click()}
           >
             <UploadIcon kind="image" />
-            <b>选择照片</b>
+            <b>选择照片或视频</b>
           </button>
           <button
             type="button"
@@ -473,7 +413,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
             <UploadIcon kind="camera" />
             <b>拍照</b>
           </button>
-          <small>选择后会立即在下方显示完整预览 · 最多 8 张</small>
+          <small>选择后会立即在下方显示完整预览 · 最多 8 份</small>
         </div>
 
         <button
@@ -491,7 +431,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
           <b>
             {items.length >= maxQueueSize
               ? "已达到本次上传上限"
-              : "拖入照片，或点击从设备选择"}
+              : "拖入照片或视频，或点击从设备选择"}
           </b>
           <small>选择后会立即显示完整预览，再安全上传原图</small>
         </button>
@@ -500,7 +440,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
           {notice}
         </p>
 
-        <div className="member-upload-list" aria-label="待上传照片预览">
+        <div className="member-upload-list" aria-label="待上传照片或视频预览">
           {items.map((item, index) => {
             const locked =
               item.status === "preparing" ||
@@ -515,19 +455,27 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
                   className={`member-upload-preview preview-${item.previewStatus}`}
                   aria-busy={item.previewStatus === "loading"}
                 >
-                  <Image
-                    src={item.previewUrl}
-                    alt={item.title || `待上传照片 ${index + 1}`}
-                    fill
-                    sizes="(max-width: 560px) calc(100vw - 48px), (max-width: 760px) 42vw, 260px"
-                    unoptimized
-                    onLoad={() =>
-                      updateItem(item.id, { previewStatus: "ready" })
-                    }
-                    onError={() =>
-                      updateItem(item.id, { previewStatus: "error" })
-                    }
-                  />
+                  {item.mediaType === "video" ? (
+                    <video
+                      src={item.previewUrl}
+                      muted
+                      playsInline
+                      preload="auto"
+                      onLoadedData={() => updateItem(item.id, { previewStatus: "ready" })}
+                      onError={() => updateItem(item.id, { previewStatus: "error" })}
+                    />
+                  ) : (
+                    <Image
+                      src={item.previewUrl}
+                      alt={item.title || `待上传照片 ${index + 1}`}
+                      fill
+                      sizes="(max-width: 560px) calc(100vw - 48px), (max-width: 760px) 42vw, 260px"
+                      unoptimized
+                      onLoad={() => updateItem(item.id, { previewStatus: "ready" })}
+                      onError={() => updateItem(item.id, { previewStatus: "error" })}
+                    />
+                  )}
+                  {item.mediaType === "video" ? <i className="member-upload-media-badge">视频</i> : null}
                   <span className="member-upload-index" aria-hidden="true">
                     {index + 1}
                   </span>
@@ -635,11 +583,27 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
                     ))}
                     <span aria-hidden="true">＋</span>
                   </div>
+                  <fieldset className="member-upload-people">
+                    <legend>照片或视频中的同学 <small>选填；对方可能需要确认</small></legend>
+                    <div>
+                      {members.map((member) => (
+                        <label key={member.id}>
+                          <input
+                            type="checkbox"
+                            disabled={locked}
+                            checked={item.peopleIds.includes(member.id)}
+                            onChange={() => togglePerson(item.id, member.id)}
+                          />
+                          <span>{member.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                 </div>
                 <div className="member-upload-state">
                   <div
                     role="progressbar"
-                    aria-label={`${item.title || `第 ${index + 1} 张照片`}上传进度`}
+                    aria-label={`${item.title || `第 ${index + 1} 份媒体`}上传进度`}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={item.progress}
@@ -648,7 +612,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
                   </div>
                   <p role={item.status === "error" ? "alert" : undefined}>
                     {item.status === "preparing"
-                      ? "正在整理图片…"
+                      ? item.mediaType === "video" ? "正在提取视频封面…" : "正在整理图片…"
                       : item.status === "uploading"
                         ? `上传中 ${item.progress}%`
                         : item.status === "submitted"
@@ -662,7 +626,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
                       onClick={() => uploadItem(item)}
                     >
                       <UploadIcon kind="refresh" />
-                      重试这张
+                      重试这份
                     </button>
                   ) : null}
                 </div>
@@ -670,7 +634,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
                   className="member-upload-remove"
                   type="button"
                   disabled={locked}
-                  aria-label={`移除${item.title || "这张照片"}`}
+                  aria-label={`移除${item.title || "这份媒体"}`}
                   onClick={() => removeItem(item)}
                 >
                   <UploadIcon kind="close" />
@@ -685,7 +649,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
         <section className="upload-privacy-card">
           <header>
             <h3>隐私设置</h3>
-            <p>选择本次照片审核通过后的可见范围</p>
+            <p>选择本次内容审核通过后的可见范围</p>
           </header>
           <label className={batchVisibility === "class" ? "active" : ""}>
             <input
@@ -714,7 +678,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
             </span>
             <b>
               仅自己
-              <small>仅自己与管理员可见，不加入照片墙</small>
+              <small>仅自己与管理员可见，不加入公开媒体墙</small>
             </b>
           </label>
         </section>
@@ -734,7 +698,7 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
             <li>
               <span>1</span>
               <b>
-                选择照片<small>从设备选择或现场拍摄</small>
+                选择内容<small>从设备选择照片、视频或现场拍摄</small>
               </b>
             </li>
             <li>
@@ -762,8 +726,8 @@ export function MemberUploadStudio({ demoMode }: { demoMode: boolean }) {
           {busy
             ? "正在提交…"
             : previewBlocked
-              ? "等待照片预览"
-              : `提交 ${readyCount} 张照片`}
+              ? "等待媒体预览"
+              : `提交 ${readyCount} 份回忆`}
         </button>
       </aside>
     </section>

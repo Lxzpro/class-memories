@@ -2,6 +2,7 @@ import "server-only";
 
 import { canViewPhoto, filterVisiblePhotos } from "@/lib/authz";
 import { DEMO_MODE } from "@/lib/config";
+import { mediaTypeFromObjectKey } from "@/lib/media";
 import { MOCK_COMMENTS, MOCK_PHOTOS, MOCK_PROFILES } from "@/lib/mock-data";
 import { getStorageAdapter } from "@/lib/storage";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
@@ -13,10 +14,11 @@ function mapPhoto(row: RelatedRow, names: Map<string, string> = new Map()): Phot
   const peopleRows = Array.isArray(row.photo_people) ? row.photo_people as RelatedRow[] : [];
   const accessRows = Array.isArray(row.photo_access) ? row.photo_access as RelatedRow[] : [];
   const tagRows = Array.isArray(row.photo_tags) ? row.photo_tags as RelatedRow[] : [];
+  const originalKey = String(row.original_key);
   return {
     id: String(row.id), title: String(row.title ?? "未命名回忆"), description: String(row.description ?? ""),
-    originalKey: String(row.original_key), previewKey: String(row.preview_key), thumbnailKey: String(row.thumbnail_key),
-    previewUrl: "", thumbnailUrl: "", width: Number(row.width ?? 1200), height: Number(row.height ?? 900),
+    originalKey, previewKey: String(row.preview_key), thumbnailKey: String(row.thumbnail_key),
+    mediaType: mediaTypeFromObjectKey(originalKey), mediaUrl: "", previewUrl: "", thumbnailUrl: "", width: Number(row.width ?? 1200), height: Number(row.height ?? 900),
     location: String(row.location ?? ""),
     people: peopleRows.map((item) => {
       const profile = item.profiles as RelatedRow | null;
@@ -32,11 +34,23 @@ function mapPhoto(row: RelatedRow, names: Map<string, string> = new Map()): Phot
 
 async function signPhoto(photo: Photo): Promise<Photo> {
   const storage = getStorageAdapter();
-  const [thumbnailUrl, previewUrl] = await Promise.all([
+  const [thumbnailUrl, previewUrl, videoUrl] = await Promise.all([
     storage.createReadUrl({ key: photo.thumbnailKey, expiresIn: 5 * 60 }),
     storage.createReadUrl({ key: photo.previewKey, expiresIn: 5 * 60 }),
+    photo.mediaType === "video"
+      ? storage.createReadUrl({ key: photo.originalKey, expiresIn: 5 * 60 })
+      : Promise.resolve(""),
   ]);
-  return { ...photo, thumbnailUrl, previewUrl };
+  return { ...photo, thumbnailUrl, previewUrl, mediaUrl: videoUrl || previewUrl };
+}
+
+export type UploadMemberOption = { id: string; name: string };
+
+export async function getUploadMemberOptions(): Promise<UploadMemberOption[]> {
+  if (DEMO_MODE) return MOCK_PROFILES.filter((profile) => profile.status === "approved").map((profile) => ({ id: profile.id, name: profile.displayName }));
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.from("member_directory").select("id,display_name").order("display_name");
+  return (data ?? []).map((row) => ({ id: String(row.id), name: String(row.display_name) }));
 }
 
 function applyDemoDownloadConsent(user: Profile, photos: Photo[]): Photo[] {

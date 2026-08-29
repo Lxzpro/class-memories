@@ -195,7 +195,7 @@ export function PhotoWall({
             </button>
           ))}
         </div>
-        <span className="result-count">{filtered.length} 张照片</span>
+        <span className="result-count">{filtered.length} 份回忆</span>
       </div>
 
       {visible.length ? (
@@ -232,6 +232,9 @@ export function PhotoWall({
                   <span className="wall-open" aria-hidden="true">
                     ↗
                   </span>
+                  {photo.mediaType === "video" ? (
+                    <span className="wall-media-type">▶ 视频</span>
+                  ) : null}
                 </div>
                 <div className="wall-caption">
                   <div>
@@ -308,15 +311,27 @@ export function PhotoWall({
                 ‹
               </button>
               <div className="detail-image-wrap">
-                <Image
-                  src={selected.previewUrl}
-                  alt={`${selected.title}，${selected.description}`}
-                  fill
-                  sizes="(max-width: 800px) 100vw, 64vw"
-                  unoptimized
-                  priority
-                  suppressHydrationWarning
-                />
+                {selected.mediaType === "video" ? (
+                  <video
+                    key={selected.id}
+                    src={selected.mediaUrl}
+                    poster={selected.previewUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    aria-label={`${selected.title}，${selected.description}`}
+                  />
+                ) : (
+                  <Image
+                    src={selected.previewUrl}
+                    alt={`${selected.title}，${selected.description}`}
+                    fill
+                    sizes="(max-width: 800px) 100vw, 64vw"
+                    unoptimized
+                    priority
+                    suppressHydrationWarning
+                  />
+                )}
               </div>
               <footer className="detail-image-footer">
                 <span aria-hidden="true">▦</span>

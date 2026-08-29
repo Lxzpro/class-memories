@@ -13,6 +13,6 @@ describe("R2 upload signing authorization", () => {
       body: JSON.stringify({ name: "memory.jpg", type: "image/jpeg", size: 10, previewSize: 10, thumbnailSize: 10 }),
     }));
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toEqual({ error: "仅管理员可以上传照片。" });
+    await expect(response.json()).resolves.toEqual({ error: "仅管理员可以上传照片或视频。" });
   });
 });

@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   const user = await getApiMember();
   if (!user)
     return Response.json(
-      { error: "只有已通过审核的班级成员可以上传照片。" },
+      { error: "只有已通过审核的班级成员可以上传照片或视频。" },
       { status: 401 },
     );
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   );
   if (!parsed.success)
     return Response.json(
-      { error: "仅支持 25MB 以内的 JPG、PNG 或 WebP 图片。" },
+      { error: "支持 25MB 内的 JPG、PNG、WebP 图片，或 200MB 内的 MP4、WebM 视频。" },
       { status: 400 },
     );
 

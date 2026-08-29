@@ -2,6 +2,7 @@ export type UserRole = "admin" | "member";
 export type UserStatus = "pending" | "approved" | "rejected";
 export type PhotoVisibility = "class" | "tagged_people" | "selected" | "private";
 export type ReviewStatus = "draft" | "published" | "hidden" | "deleted";
+export type MediaType = "photo" | "video";
 
 export interface Profile {
   id: string;
@@ -23,6 +24,8 @@ export interface Photo {
   originalKey: string;
   previewKey: string;
   thumbnailKey: string;
+  mediaType: MediaType;
+  mediaUrl: string;
   previewUrl: string;
   thumbnailUrl: string;
   width: number;

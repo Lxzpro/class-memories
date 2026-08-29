@@ -162,7 +162,7 @@ export function MemberHomeBoard({
             <span aria-hidden="true">⌘</span> 随机翻一张
           </Link>
           <Link href="/upload" className="memory-upload-action">
-            <span aria-hidden="true">⇧</span> 上传照片
+            <span aria-hidden="true">⇧</span> 上传回忆
           </Link>
           <small>▣ 仅本班同学可见</small>
         </div>

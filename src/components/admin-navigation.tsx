@@ -17,7 +17,7 @@ const navigation: Array<{
 }> = [
   { tab: "overview", label: "概览" },
   { tab: "upload", label: "批量上传" },
-  { tab: "photos", label: "照片管理" },
+  { tab: "photos", label: "媒体管理" },
   { tab: "members", label: "成员审核" },
   { tab: "invites", label: "邀请口令" },
   { tab: "logs", label: "操作记录" },

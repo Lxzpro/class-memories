@@ -2,19 +2,22 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AdminOverview } from "@/components/admin-overview";
 import type { AdminDashboardData, AdminInviteView } from "@/lib/admin-data";
-import type { Photo, PhotoVisibility, Profile } from "@/types/domain";
+import { MEDIA_INPUT_ACCEPT, mediaTypeForFile, prepareMedia, validateMediaFile } from "@/lib/client-media";
+import type { MediaType, Photo, PhotoVisibility, Profile } from "@/types/domain";
 
 type Tab = "overview" | "upload" | "photos" | "members" | "invites" | "logs";
 type QueueItem = {
   id: string;
   file: File;
+  mediaType: MediaType;
   preview: string;
   title: string;
   location: string;
   tags: string;
+  peopleIds: string[];
   visibility: PhotoVisibility;
   progress: number;
   status: "ready" | "uploading" | "done" | "error";
@@ -24,32 +27,11 @@ type QueueItem = {
 const tabLabels: Record<Tab, string> = {
   overview: "班级回忆管理",
   upload: "批量上传",
-  photos: "照片管理",
+  photos: "媒体管理",
   members: "成员审核",
   invites: "邀请口令",
   logs: "操作记录",
 };
-
-async function canvasBlob(
-  bitmap: ImageBitmap,
-  maxWidth: number,
-  quality: number,
-) {
-  const scale = Math.min(1, maxWidth / bitmap.width);
-  const width = Math.round(bitmap.width * scale);
-  const height = Math.round(bitmap.height * scale);
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("浏览器无法处理这张图片");
-  context.drawImage(bitmap, 0, 0, width, height);
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/webp", quality),
-  );
-  if (!blob) throw new Error("图片压缩失败");
-  return { blob, width, height };
-}
 
 export function AdminDashboard({
   initialData,
@@ -75,6 +57,7 @@ export function AdminDashboard({
   const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null);
   const [inviteForm, setInviteForm] = useState({ validDays: 7, maxUses: 10 });
   const fileInput = useRef<HTMLInputElement>(null);
+  const objectUrls = useRef(new Set<string>());
   const approvedCount = members.filter(
     (member) => member.status === "approved",
   ).length;
@@ -91,33 +74,45 @@ export function AdminDashboard({
     () => new Map(members.map((member) => [member.id, member.displayName])),
     [members],
   );
+  const approvedMembers = useMemo(
+    () => members.filter((member) => member.status === "approved"),
+    [members],
+  );
   const pendingPrivacyCount = privacyRequests.filter(
     (request) => request.status === "pending",
   ).length;
 
+  useEffect(
+    () => () => {
+      objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      objectUrls.current.clear();
+    },
+    [],
+  );
+
   function addFiles(files: FileList | null) {
     if (!files) return;
-    const allowed = new Set(["image/jpeg", "image/png", "image/webp"]);
     const items = Array.from(files).map(
-      (file): QueueItem => ({
-        id: crypto.randomUUID(),
-        file,
-        preview: URL.createObjectURL(file),
-        title: file.name.replace(/\.[^.]+$/, ""),
-        location: "",
-        tags: "",
-        visibility: "class",
-        progress: 0,
-        status:
-          allowed.has(file.type) && file.size <= 25 * 1024 * 1024
-            ? "ready"
-            : "error",
-        error: !allowed.has(file.type)
-          ? "仅支持 JPG、PNG、WebP"
-          : file.size > 25 * 1024 * 1024
-            ? "文件超过 25MB"
-            : undefined,
-      }),
+      (file): QueueItem => {
+        const mediaType = mediaTypeForFile(file);
+        const error = validateMediaFile(file);
+        const preview = URL.createObjectURL(file);
+        objectUrls.current.add(preview);
+        return {
+          id: crypto.randomUUID(),
+          file,
+          mediaType: mediaType ?? "photo",
+          preview,
+          title: file.name.replace(/\.[^.]+$/, ""),
+          location: "",
+          tags: "",
+          peopleIds: [],
+          visibility: "class",
+          progress: 0,
+          status: error ? "error" : "ready",
+          error: error ?? undefined,
+        };
+      },
     );
     setQueue((current) => [...current, ...items]);
   }
@@ -136,14 +131,8 @@ export function AdminDashboard({
       error: undefined,
     });
     try {
-      const bitmap = await createImageBitmap(item.file);
-      const width = bitmap.width;
-      const height = bitmap.height;
-      const [preview, thumbnail] = await Promise.all([
-        canvasBlob(bitmap, 1600, 0.84),
-        canvasBlob(bitmap, 640, 0.78),
-      ]);
-      bitmap.close();
+      const prepared = await prepareMedia(item.file);
+      const { width, height, preview, thumbnail, mediaType } = prepared;
       updateQueue(item.id, { progress: 20 });
       const signResponse = await fetch("/api/admin/uploads/sign", {
         method: "POST",
@@ -152,8 +141,8 @@ export function AdminDashboard({
           name: item.file.name,
           type: item.file.type,
           size: item.file.size,
-          previewSize: preview.blob.size,
-          thumbnailSize: thumbnail.blob.size,
+          previewSize: preview.size,
+          thumbnailSize: thumbnail.size,
         }),
       });
       const signed = await signResponse.json();
@@ -169,12 +158,12 @@ export function AdminDashboard({
           fetch(signed.urls.preview, {
             method: "PUT",
             headers: { "Content-Type": "image/webp" },
-            body: preview.blob,
+            body: preview,
           }),
           fetch(signed.urls.thumbnail, {
             method: "PUT",
             headers: { "Content-Type": "image/webp" },
-            body: thumbnail.blob,
+            body: thumbnail,
           }),
         ].map(async (promise) => {
           const response = await promise;
@@ -189,11 +178,13 @@ export function AdminDashboard({
         location: item.location,
         width,
         height,
+        mediaType,
         visibility: item.visibility,
         downloadAllowed: false,
         originalKey: signed.keys.original,
         previewKey: signed.keys.preview,
         thumbnailKey: signed.keys.thumbnail,
+        peopleIds: item.peopleIds,
         tags: item.tags
           .split(/[,，]/)
           .map((tag) => tag.trim())
@@ -205,7 +196,7 @@ export function AdminDashboard({
         body: JSON.stringify(metadata),
       });
       const saved = await saveResponse.json();
-      if (!saveResponse.ok) throw new Error(saved.error || "照片资料保存失败");
+      if (!saveResponse.ok) throw new Error(saved.error || "媒体资料保存失败");
       updateQueue(item.id, { status: "done", progress: 100 });
     } catch (reason) {
       updateQueue(item.id, {
@@ -233,6 +224,15 @@ export function AdminDashboard({
           member.id === id ? { ...member, status } : member,
         ),
       );
+  }
+
+  function toggleQueuePerson(itemId: string, userId: string) {
+    setQueue((current) => current.map((item) => item.id === itemId ? {
+      ...item,
+      peopleIds: item.peopleIds.includes(userId)
+        ? item.peopleIds.filter((id) => id !== userId)
+        : [...item.peopleIds, userId],
+    } : item));
   }
 
   async function deleteMember(member: Profile) {
@@ -552,7 +552,7 @@ export function AdminDashboard({
                   <b>
                     {queue.filter((item) => item.status === "ready").length}
                   </b>
-                  <span>张照片在上传队列</span>
+                  <span>份媒体在上传队列</span>
                   <i>→</i>
                 </Link>
               </div>
@@ -566,12 +566,12 @@ export function AdminDashboard({
           <div className="section-title">
             <div>
               <p>PRIVATE R2 UPLOAD</p>
-              <h2>批量上传照片</h2>
-              <span>原图、预览图和缩略图会分开保存。</span>
+              <h2>批量上传照片或视频</h2>
+              <span>原文件、预览封面和缩略图会分开保存。</span>
             </div>
             {queue.length > 0 && (
               <button type="button" onClick={uploadAll}>
-                上传全部可用照片
+                上传全部可用内容
               </button>
             )}
           </div>
@@ -580,7 +580,7 @@ export function AdminDashboard({
             className="sr-only"
             type="file"
             multiple
-            accept="image/jpeg,image/png,image/webp"
+            accept={MEDIA_INPUT_ACCEPT}
             onChange={(event) => addFiles(event.target.files)}
           />
           <button
@@ -594,8 +594,8 @@ export function AdminDashboard({
             }}
           >
             <span>＋</span>
-            <b>拖入照片，或点击选择</b>
-            <small>支持 JPG、PNG、WebP · 单张不超过 25MB</small>
+            <b>拖入照片或视频，或点击选择</b>
+            <small>图片不超过 25MB · MP4 / WebM 不超过 200MB</small>
           </button>
           <div className="upload-queue">
             {queue.map((item) => (
@@ -604,14 +604,19 @@ export function AdminDashboard({
                 className={`upload-item status-${item.status}`}
               >
                 <div className="upload-thumb">
-                  <Image
-                    src={item.preview}
-                    alt={item.title}
-                    fill
-                    sizes="100px"
-                    unoptimized
-                    suppressHydrationWarning
-                  />
+                  {item.mediaType === "video" ? (
+                    <video src={item.preview} muted playsInline preload="auto" />
+                  ) : (
+                    <Image
+                      src={item.preview}
+                      alt={item.title}
+                      fill
+                      sizes="100px"
+                      unoptimized
+                      suppressHydrationWarning
+                    />
+                  )}
+                  {item.mediaType === "video" ? <i>视频</i> : null}
                 </div>
                 <div className="upload-fields">
                   <input
@@ -637,6 +642,21 @@ export function AdminDashboard({
                     }
                     placeholder="标签，用逗号分隔"
                   />
+                  <fieldset className="admin-upload-people">
+                    <legend>相关人物（选填）</legend>
+                    <div>
+                      {approvedMembers.map((member) => (
+                          <label key={member.id}>
+                            <input
+                              type="checkbox"
+                              checked={item.peopleIds.includes(member.id)}
+                              onChange={() => toggleQueuePerson(item.id, member.id)}
+                            />
+                            {member.displayName}
+                          </label>
+                        ))}
+                    </div>
+                  </fieldset>
                 </div>
                 <select
                   aria-label="可见范围"
@@ -671,9 +691,10 @@ export function AdminDashboard({
                 </div>
                 <button
                   type="button"
-                  aria-label="移除照片"
+                  aria-label="移除媒体"
                   onClick={() => {
                     URL.revokeObjectURL(item.preview);
+                    objectUrls.current.delete(item.preview);
                     setQueue((current) =>
                       current.filter((queued) => queued.id !== item.id),
                     );
@@ -692,7 +713,7 @@ export function AdminDashboard({
           <div className="section-title">
             <div>
               <p>PHOTO LIBRARY</p>
-              <h2>照片管理</h2>
+              <h2>照片与视频管理</h2>
               <span>
                 修改故事、地点、人物、标签和可见范围，或隐藏和删除照片。
               </span>
@@ -713,6 +734,17 @@ export function AdminDashboard({
                     unoptimized
                     suppressHydrationWarning
                   />
+                  {photo.mediaType === "video" ? (
+                    <a
+                      className="admin-video-preview"
+                      href={photo.mediaUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`播放视频：${photo.title}`}
+                    >
+                      ▶
+                    </a>
+                  ) : null}
                 </div>
                 <div className="admin-photo-copy">
                   <input

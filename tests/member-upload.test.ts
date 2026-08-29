@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createMemberUploadKeys,
   memberPhotoSubmissionSchema,
+  memberUploadSignSchema,
   submissionKeysBelongToUser,
 } from "@/lib/member-uploads";
 
@@ -23,15 +24,49 @@ describe("member photo uploads", () => {
       location: "操场",
       width: 1600,
       height: 1200,
+      mediaType: "photo",
       visibility: "class",
       originalKey: keys.original,
       previewKey: keys.preview,
       thumbnailKey: keys.thumbnail,
       tags: ["操场"],
+      peopleIds: ["classmate-1"],
     });
 
     expect(submissionKeysBelongToUser("member-123", photo)).toBe(true);
     expect(submissionKeysBelongToUser("another-member", photo)).toBe(false);
+  });
+
+  it("supports member-owned MP4 video keys without accepting them as photo keys", () => {
+    const id = "018f0f65-6748-7d19-9f52-111f6bc4278b";
+    const keys = createMemberUploadKeys("member-123", id, "video/mp4");
+    const video = memberPhotoSubmissionSchema.parse({
+      id,
+      title: "运动会接力",
+      description: "",
+      location: "操场",
+      width: 1920,
+      height: 1080,
+      mediaType: "video",
+      visibility: "class",
+      originalKey: keys.original,
+      previewKey: keys.preview,
+      thumbnailKey: keys.thumbnail,
+      tags: ["运动会"],
+      peopleIds: [],
+    });
+
+    expect(keys.original.endsWith("memory.mp4")).toBe(true);
+    expect(submissionKeysBelongToUser("member-123", video)).toBe(true);
+    expect(submissionKeysBelongToUser("another-member", video)).toBe(false);
+    expect(submissionKeysBelongToUser("member-123", { ...video, mediaType: "photo" })).toBe(false);
+  });
+
+  it("keeps image uploads at 25MB while allowing videos up to 200MB", () => {
+    const shared = { name: "memory", previewSize: 10, thumbnailSize: 10 };
+    expect(memberUploadSignSchema.safeParse({ ...shared, type: "image/jpeg", size: 26 * 1024 * 1024 }).success).toBe(false);
+    expect(memberUploadSignSchema.safeParse({ ...shared, type: "video/mp4", size: 199 * 1024 * 1024 }).success).toBe(true);
+    expect(memberUploadSignSchema.safeParse({ ...shared, type: "video/mp4", size: 201 * 1024 * 1024 }).success).toBe(false);
   });
 
   it("rejects unauthenticated upload signing before storage is reached", async () => {
@@ -52,7 +87,7 @@ describe("member photo uploads", () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({
-      error: "只有已通过审核的班级成员可以上传照片。",
+      error: "只有已通过审核的班级成员可以上传照片或视频。",
     });
   });
 });

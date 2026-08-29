@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const user = await getApiMember();
   if (!user)
     return Response.json(
-      { error: "只有已通过审核的班级成员可以提交照片。" },
+      { error: "只有已通过审核的班级成员可以提交照片或视频。" },
       { status: 401 },
     );
 
@@ -20,12 +20,12 @@ export async function POST(request: Request) {
   );
   if (!parsed.success)
     return Response.json(
-      { error: "照片资料不完整，请检查标题和图片信息。" },
+      { error: "媒体资料不完整，请检查标题、文件和人物信息。" },
       { status: 400 },
     );
   if (!submissionKeysBelongToUser(user.id, parsed.data)) {
     return Response.json(
-      { error: "照片存储路径与当前账号不匹配。" },
+      { error: "媒体存储路径与当前账号不匹配。" },
       { status: 403 },
     );
   }
@@ -58,9 +58,31 @@ export async function POST(request: Request) {
         ])
         .catch(() => undefined);
       return Response.json(
-        { error: "照片资料保存失败，请重新上传。" },
+        { error: "媒体资料保存失败，请重新上传。" },
         { status: 500 },
       );
+    }
+
+    if (photo.peopleIds.length > 0) {
+      const uniquePeopleIds = [...new Set(photo.peopleIds)];
+      const { data: preferences } = await supabase
+        .from("profiles")
+        .select("id,require_tag_approval")
+        .in("id", uniquePeopleIds)
+        .eq("status", "approved");
+      const people = (preferences ?? []).map((profile) => ({
+        photo_id: photo.id,
+        user_id: profile.id,
+        consent_status: profile.require_tag_approval ? "pending" : "approved",
+      }));
+      if (people.length > 0) {
+        const { error: peopleError } = await supabase.from("photo_people").insert(people);
+        if (peopleError) {
+          await supabase.from("photos").delete().eq("id", photo.id);
+          await getStorageAdapter().deleteObjects([photo.originalKey, photo.previewKey, photo.thumbnailKey]).catch(() => undefined);
+          return Response.json({ error: "人物关联保存失败，请重新上传。" }, { status: 500 });
+        }
+      }
     }
 
     for (const name of photo.tags) {
@@ -85,8 +107,8 @@ export async function POST(request: Request) {
         createdAt: new Date().toISOString(),
       },
       message: DEMO_MODE
-        ? "演示模式已模拟提交，照片不会写入云端。"
-        : "照片已提交，管理员审核后会出现在相册中。",
+        ? "演示模式已模拟提交，媒体不会写入云端。"
+        : `${photo.mediaType === "video" ? "视频" : "照片"}已提交，管理员审核后会出现在相册中。`,
     },
     { status: 201 },
   );
