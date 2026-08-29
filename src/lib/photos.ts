@@ -15,6 +15,7 @@ function mapPhoto(row: RelatedRow, names: Map<string, string> = new Map()): Phot
   const accessRows = Array.isArray(row.photo_access) ? row.photo_access as RelatedRow[] : [];
   const tagRows = Array.isArray(row.photo_tags) ? row.photo_tags as RelatedRow[] : [];
   const originalKey = String(row.original_key);
+  const uploadedBy = String(row.uploaded_by);
   return {
     id: String(row.id), title: String(row.title ?? "未命名回忆"), description: String(row.description ?? ""),
     originalKey, previewKey: String(row.preview_key), thumbnailKey: String(row.thumbnail_key),
@@ -28,7 +29,7 @@ function mapPhoto(row: RelatedRow, names: Map<string, string> = new Map()): Phot
     visibility: String(row.visibility) as PhotoVisibility,
     selectedUserIds: accessRows.map((item) => String(item.user_id)),
     downloadAllowed: Boolean(row.download_allowed), reviewStatus: String(row.review_status) as ReviewStatus,
-    uploadedBy: String(row.uploaded_by), createdAt: String(row.created_at),
+    uploadedBy, uploaderName: names.get(uploadedBy) ?? "班级成员", createdAt: String(row.created_at),
   };
 }
 

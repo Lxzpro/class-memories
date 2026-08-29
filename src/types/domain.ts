@@ -37,6 +37,7 @@ export interface Photo {
   downloadAllowed: boolean;
   reviewStatus: ReviewStatus;
   uploadedBy: string;
+  uploaderName: string;
   createdAt: string;
 }
 

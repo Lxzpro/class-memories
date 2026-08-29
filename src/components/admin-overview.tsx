@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { UserAvatar } from "@/components/user-avatar";
 import type {
   AdminInviteView,
   AdminLogView,
@@ -216,7 +217,12 @@ export function AdminOverview({
             <div className="pending-member-card">
               <div className="pending-member-person">
                 <span className="admin-person-avatar">
-                  {firstMember.displayName.slice(0, 1)}
+                  <UserAvatar
+                    user={firstMember}
+                    size={48}
+                    avatarEndpoint={`/api/admin/members/${encodeURIComponent(firstMember.id)}/avatar`}
+                    listenForUpdates={false}
+                  />
                 </span>
                 <p>
                   <b>{firstMember.displayName}</b>

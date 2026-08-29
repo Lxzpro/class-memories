@@ -18,7 +18,7 @@ import type { InviteCodeRecord, Photo, Profile } from "@/types/domain";
 const member: Profile = { id: "member", email: "m@example.com", displayName: "同学", avatarKey: null, role: "member", status: "approved", showRealName: true, allowOriginalDownload: true, createdAt: "2026-01-01" };
 const admin: Profile = { ...member, id: "admin", role: "admin" };
 const pending: Profile = { ...member, id: "pending", status: "pending" };
-const basePhoto: Photo = { id: "photo", title: "操场合照", description: "运动会", originalKey: "originals/photo/x.jpg", previewKey: "previews/photo.webp", thumbnailKey: "thumbnails/photo.webp", mediaType: "photo", mediaUrl: "/preview", previewUrl: "/preview", thumbnailUrl: "/thumb", width: 1200, height: 900, location: "操场", people: [], tags: ["操场", "运动会"], visibility: "class", selectedUserIds: [], downloadAllowed: true, reviewStatus: "published", uploadedBy: "admin", createdAt: "2026-01-01" };
+const basePhoto: Photo = { id: "photo", title: "操场合照", description: "运动会", originalKey: "originals/photo/x.jpg", previewKey: "previews/photo.webp", thumbnailKey: "thumbnails/photo.webp", mediaType: "photo", mediaUrl: "/preview", previewUrl: "/preview", thumbnailUrl: "/thumb", width: 1200, height: 900, location: "操场", people: [], tags: ["操场", "运动会"], visibility: "class", selectedUserIds: [], downloadAllowed: true, reviewStatus: "published", uploadedBy: "admin", uploaderName: "管理员", createdAt: "2026-01-01" };
 
 describe("member and photo authorization", () => {
   it("blocks pending users and keeps admin access separate", () => {

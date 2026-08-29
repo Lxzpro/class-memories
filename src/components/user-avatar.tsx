@@ -23,15 +23,25 @@ type Props = {
   className?: string;
   size: number;
   priority?: boolean;
+  avatarEndpoint?: string;
+  alwaysTryRemote?: boolean;
+  listenForUpdates?: boolean;
   sourceOverride?: string | null;
   forceHasCustom?: boolean;
 };
+
+function appendAvatarQuery(endpoint: string, query: string) {
+  return `${endpoint}${endpoint.includes("?") ? "&" : "?"}${query}`;
+}
 
 export function UserAvatar({
   user,
   className = "",
   size,
   priority = false,
+  avatarEndpoint = "/api/profile/avatar",
+  alwaysTryRemote = false,
+  listenForUpdates = true,
   sourceOverride = null,
   forceHasCustom,
 }: Props) {
@@ -39,31 +49,37 @@ export function UserAvatar({
   const [failure, setFailure] = useState({ key: "", count: 0 });
 
   useEffect(() => {
+    if (!listenForUpdates) return;
+
     function updateAvatar(event: Event) {
       const detail = (event as CustomEvent<AvatarUpdateDetail>).detail;
       if (detail?.userId === user.id) setLiveAvatar(detail);
     }
     window.addEventListener(AVATAR_UPDATED_EVENT, updateAvatar);
     return () => window.removeEventListener(AVATAR_UPDATED_EVENT, updateAvatar);
-  }, [user.id]);
+  }, [listenForUpdates, user.id]);
 
   const qqNumber = qqNumberFromEmail(user.email);
   const hasCustom =
     forceHasCustom ?? liveAvatar?.hasCustom ?? Boolean(user.avatarKey);
+  const hasRemoteSource = alwaysTryRemote || hasCustom || Boolean(qqNumber);
   const version = liveAvatar?.version ?? avatarVersion(user.avatarKey);
   const localSource = sourceOverride ?? liveAvatar?.previewUrl ?? null;
-  const sourceKey = `${localSource ?? "remote"}:${version}:${hasCustom}:${qqNumber ?? ""}`;
+  const sourceKey = `${user.id}:${avatarEndpoint}:${localSource ?? "remote"}:${version}:${hasCustom}:${alwaysTryRemote}:${qqNumber ?? ""}`;
   const failureCount = failure.key === sourceKey ? failure.count : 0;
   const remoteStage = localSource ? 1 : 0;
   const qqFallbackStage = remoteStage + 1;
   let shouldLoad = false;
-  let src = `/api/profile/avatar?v=${encodeURIComponent(version)}`;
+  let src = appendAvatarQuery(
+    avatarEndpoint,
+    `v=${encodeURIComponent(version)}`,
+  );
   if (localSource && failureCount === 0) {
     shouldLoad = true;
     src = localSource;
   } else if (
     failureCount === remoteStage &&
-    (hasCustom || Boolean(qqNumber))
+    hasRemoteSource
   ) {
     shouldLoad = true;
   } else if (
@@ -72,7 +88,10 @@ export function UserAvatar({
     failureCount === qqFallbackStage
   ) {
     shouldLoad = true;
-    src = `/api/profile/avatar?default=qq&v=${encodeURIComponent(version)}`;
+    src = appendAvatarQuery(
+      avatarEndpoint,
+      `default=qq&v=${encodeURIComponent(version)}`,
+    );
   }
   const initial = user.displayName.trim().slice(0, 1) || "同";
 

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { UserAvatar } from "@/components/user-avatar";
 import { toggleFavoriteIds } from "@/lib/favorites";
 import { filterPhotos } from "@/lib/photo-filter";
 import type { Photo, PhotoComment } from "@/types/domain";
@@ -502,6 +503,25 @@ export function PhotoWall({
                     <dd>
                       {selected.people.map((person) => person.name).join("、") ||
                         "还没有标记人物"}
+                    </dd>
+                  </div>
+                  <div className="detail-uploader">
+                    <dt>上传者</dt>
+                    <dd>
+                      <UserAvatar
+                        user={{
+                          id: selected.uploadedBy,
+                          displayName: selected.uploaderName,
+                          email: "",
+                          avatarKey: null,
+                        }}
+                        className="detail-uploader-avatar"
+                        size={30}
+                        avatarEndpoint={`/api/members/${encodeURIComponent(selected.uploadedBy)}/avatar`}
+                        alwaysTryRemote
+                        listenForUpdates={false}
+                      />
+                      <span>{selected.uploaderName}</span>
                     </dd>
                   </div>
                 </dl>

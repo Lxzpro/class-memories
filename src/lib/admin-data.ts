@@ -42,6 +42,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   const memberNames = new Map((memberRows ?? []).map((row) => [String(row.id), String(row.display_name)]));
   const photos = await Promise.all((photoRows ?? []).map(async (row): Promise<Photo> => {
     const originalKey = String(row.original_key);
+    const uploadedBy = String(row.uploaded_by);
     const mediaType = mediaTypeFromObjectKey(originalKey);
     const [previewUrl, thumbnailUrl, videoUrl] = await Promise.all([
       storage.createReadUrl({ key: String(row.preview_key) }),
@@ -55,7 +56,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       id: String(row.id), title: String(row.title), description: String(row.description ?? ""), originalKey, previewKey: String(row.preview_key), thumbnailKey: String(row.thumbnail_key),
       mediaType, mediaUrl: videoUrl || previewUrl, previewUrl, thumbnailUrl, width: Number(row.width), height: Number(row.height), location: String(row.location ?? ""),
       people: peopleRows.map((person) => ({ id: String(person.user_id), name: memberNames.get(String(person.user_id)) ?? "班级成员", consentStatus: person.consent_status === "rejected" ? "rejected" : person.consent_status === "pending" ? "pending" : "approved" })),
-      tags: tagRows.map((item) => String(item.tags?.name ?? "")).filter(Boolean), visibility: row.visibility, selectedUserIds: accessRows.map((item) => String(item.user_id)), downloadAllowed: Boolean(row.download_allowed), reviewStatus: row.review_status, uploadedBy: String(row.uploaded_by), createdAt: String(row.created_at),
+      tags: tagRows.map((item) => String(item.tags?.name ?? "")).filter(Boolean), visibility: row.visibility, selectedUserIds: accessRows.map((item) => String(item.user_id)), downloadAllowed: Boolean(row.download_allowed), reviewStatus: row.review_status, uploadedBy, uploaderName: memberNames.get(uploadedBy) ?? "班级成员", createdAt: String(row.created_at),
     };
   }));
   const members: Profile[] = (memberRows ?? []).map((row) => ({ id: String(row.id), email: String(row.email), displayName: String(row.display_name), avatarKey: row.avatar_key ? String(row.avatar_key) : null, role: row.role, status: row.status, showRealName: Boolean(row.show_real_name), allowOriginalDownload: Boolean(row.allow_original_download), createdAt: String(row.created_at) }));

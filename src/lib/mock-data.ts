@@ -91,6 +91,7 @@ export const MOCK_PHOTOS: Photo[] = memorySeeds.map((seed, index) => {
     downloadAllowed: number % 4 !== 0,
     reviewStatus,
     uploadedBy: number === 21 ? "user-member" : "user-admin",
+    uploaderName: number === 21 ? "夏宁" : "林老师",
     createdAt: new Date(Date.UTC(2026, 0, Math.min(number, 28), 8)).toISOString(),
   } satisfies Photo;
 });

@@ -267,6 +267,10 @@ export function AdminDashboard({
       if (!response.ok)
         throw new Error(result.error || "删除成员失败，请稍后重试。");
 
+      const newOwnerName = result.newOwnerId
+        ? members.find((currentMember) => currentMember.id === result.newOwnerId)
+            ?.displayName
+        : undefined;
       setMembers((current) =>
         current.filter((currentMember) => currentMember.id !== member.id),
       );
@@ -277,6 +281,10 @@ export function AdminDashboard({
             photo.uploadedBy === member.id && result.newOwnerId
               ? result.newOwnerId
               : photo.uploadedBy,
+          uploaderName:
+            photo.uploadedBy === member.id && result.newOwnerId
+              ? (newOwnerName ?? "班级成员")
+              : photo.uploaderName,
           people: photo.people.filter((person) => person.id !== member.id),
           selectedUserIds: photo.selectedUserIds.filter(
             (userId) => userId !== member.id,
@@ -1078,7 +1086,14 @@ export function AdminDashboard({
               <div className="member-review-list">
                 {members.map((member) => (
                   <article key={member.id}>
-                    <i>{member.displayName.slice(0, 1)}</i>
+                    <i>
+                      <UserAvatar
+                        user={member}
+                        size={44}
+                        avatarEndpoint={`/api/admin/members/${encodeURIComponent(member.id)}/avatar`}
+                        listenForUpdates={false}
+                      />
+                    </i>
                     <div>
                       <b>{member.displayName}</b>
                       <span>{member.email}</span>
