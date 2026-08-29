@@ -3,6 +3,10 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { MEDIA_INPUT_ACCEPT, mediaTypeForFile, prepareMedia, validateMediaFile } from "@/lib/client-media";
+import {
+  MAX_IMAGE_FILE_SIZE_MB,
+  MAX_VIDEO_FILE_SIZE_MB,
+} from "@/lib/media-limits";
 import type { UploadMemberOption } from "@/lib/photos";
 import type { MediaType, PhotoVisibility } from "@/types/domain";
 
@@ -371,7 +375,10 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
           <div>
             <p>MEMORY CONTRIBUTION</p>
             <h2 id="upload-studio-title">选择你想留下的照片或视频</h2>
-            <span>图片不超过 25MB · MP4 / WebM 不超过 200MB · 最多 8 份</span>
+            <span>
+              图片不超过 {MAX_IMAGE_FILE_SIZE_MB}MB · MP4 / WebM 不超过{" "}
+              {MAX_VIDEO_FILE_SIZE_MB}MB · 最多 8 份
+            </span>
           </div>
           <b>
             {items.length} / {maxQueueSize}

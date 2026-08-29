@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  MAX_IMAGE_FILE_SIZE,
+  MAX_IMAGE_FILE_SIZE_MB,
+  MAX_VIDEO_FILE_SIZE,
+} from "@/lib/media-limits";
 
 export const mediaUploadTypeSchema = z.enum([
   "image/jpeg",
@@ -15,7 +20,7 @@ export const memberUploadSignSchema = z.object({
     .number()
     .int()
     .positive()
-    .max(200 * 1024 * 1024),
+    .max(MAX_VIDEO_FILE_SIZE),
   previewSize: z
     .number()
     .int()
@@ -27,8 +32,12 @@ export const memberUploadSignSchema = z.object({
     .positive()
     .max(3 * 1024 * 1024),
 }).superRefine((file, context) => {
-  if (file.type.startsWith("image/") && file.size > 25 * 1024 * 1024) {
-    context.addIssue({ code: "custom", path: ["size"], message: "图片不能超过 25MB" });
+  if (file.type.startsWith("image/") && file.size > MAX_IMAGE_FILE_SIZE) {
+    context.addIssue({
+      code: "custom",
+      path: ["size"],
+      message: `图片不能超过 ${MAX_IMAGE_FILE_SIZE_MB}MB`,
+    });
   }
 });
 

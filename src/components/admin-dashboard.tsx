@@ -7,6 +7,10 @@ import { AdminOverview } from "@/components/admin-overview";
 import { UserAvatar } from "@/components/user-avatar";
 import type { AdminDashboardData, AdminInviteView } from "@/lib/admin-data";
 import { MEDIA_INPUT_ACCEPT, mediaTypeForFile, prepareMedia, validateMediaFile } from "@/lib/client-media";
+import {
+  MAX_IMAGE_FILE_SIZE_MB,
+  MAX_VIDEO_FILE_SIZE_MB,
+} from "@/lib/media-limits";
 import type { MediaType, Photo, PhotoVisibility, Profile } from "@/types/domain";
 
 type Tab = "overview" | "upload" | "photos" | "members" | "invites" | "logs";
@@ -692,7 +696,10 @@ export function AdminDashboard({
           >
             <span>＋</span>
             <b>拖入照片或视频，或点击选择</b>
-            <small>图片不超过 25MB · MP4 / WebM 不超过 200MB</small>
+            <small>
+              图片不超过 {MAX_IMAGE_FILE_SIZE_MB}MB · MP4 / WebM 不超过{" "}
+              {MAX_VIDEO_FILE_SIZE_MB}MB
+            </small>
           </button>
           <div className="upload-queue">
             {queue.map((item) => (

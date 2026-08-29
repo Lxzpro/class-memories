@@ -3,10 +3,14 @@ import {
   MAX_AVATAR_SOURCE_SIZE,
   MAX_AVATAR_UPLOAD_SIZE,
 } from "@/lib/profile-avatars";
+import {
+  MAX_IMAGE_FILE_SIZE,
+  MAX_IMAGE_FILE_SIZE_MB,
+  MAX_VIDEO_FILE_SIZE,
+  MAX_VIDEO_FILE_SIZE_MB,
+} from "@/lib/media-limits";
 
 export const MEDIA_INPUT_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/webm";
-export const MAX_IMAGE_FILE_SIZE = 25 * 1024 * 1024;
-export const MAX_VIDEO_FILE_SIZE = 200 * 1024 * 1024;
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
@@ -21,7 +25,11 @@ export function validateMediaFile(file: File): string | null {
   const mediaType = mediaTypeForFile(file);
   if (!mediaType) return "仅支持 JPG、PNG、WebP、MP4 或 WebM";
   const limit = mediaType === "video" ? MAX_VIDEO_FILE_SIZE : MAX_IMAGE_FILE_SIZE;
-  if (file.size > limit) return mediaType === "video" ? "视频超过 200MB" : "图片超过 25MB";
+  if (file.size > limit) {
+    return mediaType === "video"
+      ? `视频超过 ${MAX_VIDEO_FILE_SIZE_MB}MB`
+      : `图片超过 ${MAX_IMAGE_FILE_SIZE_MB}MB`;
+  }
   return null;
 }
 

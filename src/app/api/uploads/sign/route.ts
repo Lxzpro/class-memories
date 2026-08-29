@@ -4,6 +4,10 @@ import {
   createMemberUploadKeys,
   memberUploadSignSchema,
 } from "@/lib/member-uploads";
+import {
+  MAX_IMAGE_FILE_SIZE_MB,
+  MAX_VIDEO_FILE_SIZE_MB,
+} from "@/lib/media-limits";
 import { getStorageAdapter } from "@/lib/storage";
 
 export async function POST(request: Request) {
@@ -19,7 +23,9 @@ export async function POST(request: Request) {
   );
   if (!parsed.success)
     return Response.json(
-      { error: "支持 25MB 内的 JPG、PNG、WebP 图片，或 200MB 内的 MP4、WebM 视频。" },
+      {
+        error: `支持 ${MAX_IMAGE_FILE_SIZE_MB}MB 内的 JPG、PNG、WebP 图片，或 ${MAX_VIDEO_FILE_SIZE_MB}MB 内的 MP4、WebM 视频。`,
+      },
       { status: 400 },
     );
 

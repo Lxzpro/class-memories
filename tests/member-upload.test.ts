@@ -1,4 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
+import { validateMediaFile } from "@/lib/client-media";
+import {
+  MAX_IMAGE_FILE_SIZE,
+  MAX_VIDEO_FILE_SIZE,
+  MAX_VIDEO_FILE_SIZE_MB,
+} from "@/lib/media-limits";
 import {
   createMemberUploadKeys,
   memberPhotoSubmissionSchema,
@@ -62,11 +68,24 @@ describe("member photo uploads", () => {
     expect(submissionKeysBelongToUser("member-123", { ...video, mediaType: "photo" })).toBe(false);
   });
 
-  it("keeps image uploads at 25MB while allowing videos up to 200MB", () => {
+  it("keeps image uploads at 25MB while allowing videos up to 800MB", () => {
     const shared = { name: "memory", previewSize: 10, thumbnailSize: 10 };
-    expect(memberUploadSignSchema.safeParse({ ...shared, type: "image/jpeg", size: 26 * 1024 * 1024 }).success).toBe(false);
-    expect(memberUploadSignSchema.safeParse({ ...shared, type: "video/mp4", size: 199 * 1024 * 1024 }).success).toBe(true);
-    expect(memberUploadSignSchema.safeParse({ ...shared, type: "video/mp4", size: 201 * 1024 * 1024 }).success).toBe(false);
+    expect(memberUploadSignSchema.safeParse({ ...shared, type: "image/jpeg", size: MAX_IMAGE_FILE_SIZE }).success).toBe(true);
+    expect(memberUploadSignSchema.safeParse({ ...shared, type: "image/jpeg", size: MAX_IMAGE_FILE_SIZE + 1 }).success).toBe(false);
+    expect(memberUploadSignSchema.safeParse({ ...shared, type: "video/mp4", size: MAX_VIDEO_FILE_SIZE }).success).toBe(true);
+    expect(memberUploadSignSchema.safeParse({ ...shared, type: "video/mp4", size: MAX_VIDEO_FILE_SIZE + 1 }).success).toBe(false);
+  });
+
+  it("keeps client-side media validation aligned with upload signing", () => {
+    const file = (type: string, size: number) => ({ type, size }) as File;
+    expect(validateMediaFile(file("video/mp4", MAX_VIDEO_FILE_SIZE))).toBeNull();
+    expect(validateMediaFile(file("video/webm", MAX_VIDEO_FILE_SIZE + 1))).toBe(
+      `视频超过 ${MAX_VIDEO_FILE_SIZE_MB}MB`,
+    );
+    expect(validateMediaFile(file("image/jpeg", MAX_IMAGE_FILE_SIZE))).toBeNull();
+    expect(validateMediaFile(file("image/png", MAX_IMAGE_FILE_SIZE + 1))).toBe(
+      "图片超过 25MB",
+    );
   });
 
   it("rejects unauthenticated upload signing before storage is reached", async () => {
