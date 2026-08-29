@@ -4,6 +4,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { MemberNav } from "@/components/member-nav";
 import { UserAvatar } from "@/components/user-avatar";
 import { DEMO_MODE } from "@/lib/config";
+import { getPublicProfileName } from "@/lib/profile-identity";
 import type { Profile } from "@/types/domain";
 
 export function MemberShell({
@@ -13,6 +14,8 @@ export function MemberShell({
   user: Profile;
   children: ReactNode;
 }) {
+  const publicName = getPublicProfileName(user);
+  const publicUser = { ...user, displayName: publicName };
   return (
     <div className={`member-shell${DEMO_MODE ? " has-demo" : ""}`}>
       {DEMO_MODE && (
@@ -65,7 +68,7 @@ export function MemberShell({
             href="/profile"
             aria-label="进入我的页面"
           >
-            <UserAvatar user={user} size={44} priority />
+            <UserAvatar user={publicUser} size={44} priority />
           </Link>
         </div>
       </aside>
@@ -94,8 +97,8 @@ export function MemberShell({
           </svg>
         </Link>
         <Link className="profile-chip" href="/profile">
-          <UserAvatar user={user} size={40} priority />
-          <b>{user.displayName}</b>
+          <UserAvatar user={publicUser} size={40} priority />
+          <b>{publicName}</b>
           <i aria-hidden="true">⌄</i>
         </Link>
       </header>

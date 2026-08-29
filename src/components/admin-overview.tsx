@@ -26,6 +26,12 @@ type AdminOverviewProps = {
   ) => Promise<void>;
 };
 
+function adminMemberLabel(member: Pick<Profile, "displayName" | "realName">) {
+  const realName = member.realName?.trim();
+  if (!realName || realName === member.displayName) return member.displayName;
+  return `${realName}（昵称：${member.displayName}）`;
+}
+
 const metricIcons = {
   published: (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -218,19 +224,19 @@ export function AdminOverview({
               <div className="pending-member-person">
                 <span className="admin-person-avatar">
                   <UserAvatar
-                    user={firstMember}
+                    user={{ ...firstMember, displayName: adminMemberLabel(firstMember) }}
                     size={48}
                     avatarEndpoint={`/api/admin/members/${encodeURIComponent(firstMember.id)}/avatar`}
                     listenForUpdates={false}
                   />
                 </span>
                 <p>
-                  <b>{firstMember.displayName}</b>
+                  <b>{adminMemberLabel(firstMember)}</b>
                   <small>申请加入班级 · {formatStamp(firstMember.createdAt)}</small>
                 </p>
               </div>
               <p className="pending-member-message">
-                大家好！我是{firstMember.displayName}，希望加入班级相册，
+                大家好！我是{adminMemberLabel(firstMember)}，希望加入班级相册，
                 一起珍藏我们的高中回忆。
               </p>
               <div className="reference-review-actions">
@@ -283,7 +289,7 @@ export function AdminOverview({
               )}
               <div>
                 <h3>
-                  申请{firstPrivacy.kind === "delete" ? "删除" : "隐藏"}照片
+                  申请{firstPrivacy.kind === "delete" ? "删除" : "隐藏"}内容
                   <small>{pendingPrivacy.length} 条待处理</small>
                 </h3>
                 <p>{firstPrivacy.userName} · {formatStamp(firstPrivacy.createdAt)}</p>
@@ -297,7 +303,9 @@ export function AdminOverview({
                     onReviewPrivacyRequest(firstPrivacy.id, "resolved")
                   }
                 >
-                  处理申请
+                  {firstPrivacy.kind === "delete"
+                    ? "确认并永久删除"
+                    : "确认并隐藏"}
                 </button>
                 <button
                   type="button"

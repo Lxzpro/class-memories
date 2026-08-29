@@ -2,9 +2,13 @@ import { z } from "zod";
 import { DEMO_MODE } from "@/lib/config";
 import { signToken, verifyToken } from "@/lib/security/tokens";
 import { SESSION_COOKIE } from "@/lib/auth";
+import { registrationIdentitySchema } from "@/lib/profile-identity";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
 
-const schema = z.object({ displayName: z.string().trim().min(2).max(30), email: z.string().email(), password: z.string().min(8).max(128) });
+const schema = registrationIdentitySchema.extend({
+  email: z.string().trim().email(),
+  password: z.string().min(8).max(128),
+});
 
 function cookieValue(request: Request, name: string) {
   const header = request.headers.get("cookie") ?? "";
@@ -15,7 +19,7 @@ export async function POST(request: Request) {
   const grant = verifyToken<{ inviteId: string }>(cookieValue(request, "invite_grant"));
   if (!grant) return Response.json({ error: "邀请验证已失效，请重新输入班级口令。" }, { status: 403 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return Response.json({ error: "请完整填写姓名、邮箱和至少 8 位密码。" }, { status: 400 });
+  if (!parsed.success) return Response.json({ error: "请完整填写真实姓名、昵称、邮箱和至少 8 位密码。" }, { status: 400 });
 
   if (DEMO_MODE) {
     const response = Response.json({ ok: true, next: "/pending" });
@@ -30,7 +34,10 @@ export async function POST(request: Request) {
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: { display_name: parsed.data.displayName },
+      data: {
+        display_name: parsed.data.displayName,
+        real_name: parsed.data.realName,
+      },
       emailRedirectTo: origin + "/auth/callback?next=/pending",
     },
   });

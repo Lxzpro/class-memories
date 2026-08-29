@@ -3,6 +3,7 @@ import { getAdminDashboardData } from "@/lib/admin-data";
 import { writeAdminLog } from "@/lib/admin-audit";
 import { requireAdmin } from "@/lib/auth";
 import { DEMO_MODE } from "@/lib/config";
+import { getPublicProfileName } from "@/lib/profile-identity";
 
 export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const admin = await requireAdmin(); const data = await getAdminDashboardData();
@@ -17,7 +18,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       admin={{
         id: admin.id,
         email: admin.email,
-        displayName: admin.displayName,
+        displayName: getPublicProfileName(admin),
         avatarKey: admin.avatarKey,
       }}
     />

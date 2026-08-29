@@ -12,7 +12,7 @@ type RegisterResponse = {
 
 export function RegisterForm() {
   const router = useRouter();
-  const [form, setForm] = useState({ displayName: "", email: "", password: "" });
+  const [form, setForm] = useState({ realName: "", displayName: "", email: "", password: "" });
   const [confirmationEmail, setConfirmationEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -51,7 +51,9 @@ export function RegisterForm() {
 
   return (
     <form className="auth-form" onSubmit={submit}>
-      <label htmlFor="display-name">你的名字或常用昵称</label><input id="display-name" value={form.displayName} onChange={(event) => update("displayName", event.target.value)} autoComplete="name" required />
+      <label htmlFor="real-name">真实姓名</label><input id="real-name" minLength={2} maxLength={30} value={form.realName} onChange={(event) => update("realName", event.target.value)} autoComplete="name" required />
+      <p className="field-note">用于班级成员确认；审核通过后默认向同学显示，可随时在“我的”中关闭。</p>
+      <label htmlFor="display-name">昵称</label><input id="display-name" minLength={2} maxLength={30} value={form.displayName} onChange={(event) => update("displayName", event.target.value)} autoComplete="nickname" required />
       <label htmlFor="register-email">邮箱</label><input id="register-email" type="email" value={form.email} onChange={(event) => update("email", event.target.value)} autoComplete="email" required />
       <label htmlFor="register-password">设置密码</label><input id="register-password" type="password" minLength={8} value={form.password} onChange={(event) => update("password", event.target.value)} autoComplete="new-password" required />
       <p className="field-note">至少 8 位。真实模式下密码只由 Supabase Auth 处理。</p>

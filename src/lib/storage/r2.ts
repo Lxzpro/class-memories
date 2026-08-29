@@ -46,6 +46,17 @@ export class R2StorageAdapter implements StorageAdapter {
   async deleteObjects(keys: string[]): Promise<void> {
     keys.forEach(assertSafeObjectKey);
     if (keys.length === 0) return;
-    await this.client.send(new DeleteObjectsCommand({ Bucket: this.bucket, Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true } }));
+    const result = await this.client.send(
+      new DeleteObjectsCommand({
+        Bucket: this.bucket,
+        Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+      }),
+      { abortSignal: AbortSignal.timeout(2 * 60 * 1000) },
+    );
+    if (result.Errors?.length) {
+      const error = new Error("Cloudflare R2 未能删除全部对象");
+      error.name = "R2DeleteObjectsError";
+      throw error;
+    }
   }
 }

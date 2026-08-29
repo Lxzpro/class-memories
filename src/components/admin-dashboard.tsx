@@ -44,6 +44,12 @@ const tabLabels: Record<Tab, string> = {
   logs: "操作记录",
 };
 
+function adminMemberLabel(member: Pick<Profile, "displayName" | "realName">) {
+  const realName = member.realName?.trim();
+  if (!realName || realName === member.displayName) return member.displayName;
+  return `${realName}（昵称：${member.displayName}）`;
+}
+
 export function AdminDashboard({
   initialData,
   initialTab = "overview",
@@ -86,7 +92,7 @@ export function AdminDashboard({
     (photo) => photo.reviewStatus === "draft",
   ).length;
   const memberNames = useMemo(
-    () => new Map(members.map((member) => [member.id, member.displayName])),
+    () => new Map(members.map((member) => [member.id, adminMemberLabel(member)])),
     [members],
   );
   const approvedMembers = useMemo(
@@ -254,7 +260,7 @@ export function AdminDashboard({
     if (member.role !== "member") return;
     if (
       !window.confirm(
-        `确认永久删除“${member.displayName}”吗？\n\n该账号将无法登录，收藏、留言和隐私申请会一并删除；已上传照片会保留并转交当前管理员。此操作无法撤销。`,
+        `确认永久删除“${adminMemberLabel(member)}”吗？\n\n该账号将无法登录，收藏、留言和隐私申请会一并删除；已上传照片会保留并转交当前管理员。此操作无法撤销。`,
       )
     )
       return;
@@ -313,28 +319,58 @@ export function AdminDashboard({
     id: string,
     status: "resolved" | "rejected",
   ) {
+    const request = privacyRequests.find((item) => item.id === id);
+    if (
+      status === "resolved" &&
+      request?.kind === "delete" &&
+      !window.confirm(
+        `确定永久删除“${request.photoTitle}”吗？数据库记录和云端文件都将被移除，此操作无法恢复。`,
+      )
+    ) {
+      return;
+    }
     const response = await fetch(`/api/admin/privacy-requests/${id}/review`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
-    if (!response.ok) return;
-    const request = privacyRequests.find((item) => item.id === id);
+    const result = (await response.json().catch(() => null)) as {
+      error?: string;
+      effect?: "none" | "hidden" | "deleted";
+      photoHidden?: boolean;
+      photoDeleted?: boolean;
+      storageCleanupPending?: boolean;
+      message?: string;
+    } | null;
+    if (!response.ok) {
+      window.alert(result?.error ?? "隐私申请处理失败，请稍后重试。");
+      return;
+    }
     setPrivacyRequests((current) =>
       current.map((item) =>
         item.id === id
           ? { ...item, status, resolvedAt: new Date().toISOString() }
-          : item,
+        : item,
       ),
     );
-    if (status === "resolved" && request?.photoId)
-      setPhotos((current) =>
-        current.map((photo) =>
-          photo.id === request.photoId
-            ? { ...photo, reviewStatus: "hidden" }
-            : photo,
-        ),
-      );
+    if (status === "resolved" && request?.photoId) {
+      if (result?.effect === "deleted" || result?.photoDeleted) {
+        setPhotos((current) =>
+          current.filter((photo) => photo.id !== request.photoId),
+        );
+      } else if (result?.effect === "hidden" || result?.photoHidden) {
+        setPhotos((current) =>
+          current.map((photo) =>
+            photo.id === request.photoId
+              ? { ...photo, reviewStatus: "hidden" }
+              : photo,
+          ),
+        );
+      }
+    }
+    if (result?.storageCleanupPending && result.message) {
+      window.alert(result.message);
+    }
   }
 
   async function updatePhoto(id: string, update: Partial<Photo>) {
@@ -756,7 +792,7 @@ export function AdminDashboard({
                               checked={item.peopleIds.includes(member.id)}
                               onChange={() => toggleQueuePerson(item.id, member.id)}
                             />
-                            {member.displayName}
+                            {adminMemberLabel(member)}
                           </label>
                         ))}
                     </div>
@@ -951,7 +987,7 @@ export function AdminDashboard({
                                   togglePhotoMember(photo, member.id, "person")
                                 }
                               />
-                              {member.displayName}
+                              {adminMemberLabel(member)}
                             </label>
                           ))}
                       </div>
@@ -981,7 +1017,7 @@ export function AdminDashboard({
                                     )
                                   }
                                 />
-                                {member.displayName}
+                                {adminMemberLabel(member)}
                               </label>
                             ))}
                         </div>
@@ -1081,7 +1117,7 @@ export function AdminDashboard({
               <p>CLASS MEMBERS</p>
               <h2>成员与隐私审核</h2>
               <span>
-                只有确认身份的同学才能进入相册；隐私申请接受后会先隐藏照片。
+                只有确认身份的同学才能进入相册；隐藏申请可恢复，删除申请会永久清理媒体文件。
               </span>
             </div>
           </div>
@@ -1102,8 +1138,11 @@ export function AdminDashboard({
                       />
                     </i>
                     <div>
-                      <b>{member.displayName}</b>
+                      <b>{member.realName?.trim() || member.displayName}</b>
                       <span>{member.email}</span>
+                      <em>
+                        昵称：{member.displayName} · 真实姓名：{member.realName?.trim() || "未填写"}
+                      </em>
                     </div>
                     <small className={`member-status ${member.status}`}>
                       {member.status === "approved"
@@ -1190,7 +1229,9 @@ export function AdminDashboard({
                               reviewPrivacyRequest(item.id, "resolved")
                             }
                           >
-                            接受并先隐藏
+                            {item.kind === "delete"
+                              ? "接受并永久删除"
+                              : "接受并隐藏"}
                           </button>
                           <button
                             type="button"

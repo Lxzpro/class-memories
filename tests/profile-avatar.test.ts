@@ -48,6 +48,7 @@ const user: Profile = {
   id: USER_ID,
   email: "123456789@qq.com",
   displayName: "拾光同学",
+  realName: "拾光同学",
   avatarKey: null,
   role: "member",
   status: "approved",

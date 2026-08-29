@@ -10,6 +10,50 @@ const schema = z.object({
   message: z.string().trim().max(500).default(""),
 });
 
+export async function GET() {
+  const user = await getApiMember();
+  if (!user) {
+    return Response.json(
+      { error: "请先以已通过审核的成员身份登录。" },
+      { status: 401 },
+    );
+  }
+
+  if (DEMO_MODE) return Response.json({ requests: [] });
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("privacy_requests")
+    .select(
+      "id,photo_id,kind,message,status,created_at,resolved_at,photos(title)",
+    )
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return Response.json(
+      { error: "申请记录读取失败，请稍后再试。" },
+      { status: 500 },
+    );
+  }
+
+  return Response.json({
+    requests: (data ?? []).map((row) => ({
+      id: String(row.id),
+      photoId: row.photo_id ? String(row.photo_id) : null,
+      photoTitle: String(
+        (row.photos as unknown as { title?: string } | null)?.title ??
+          "内容已删除",
+      ),
+      kind: row.kind,
+      message: String(row.message ?? ""),
+      status: row.status,
+      createdAt: String(row.created_at),
+      resolvedAt: row.resolved_at ? String(row.resolved_at) : null,
+    })),
+  });
+}
+
 export async function POST(request: Request) {
   const user = await getApiMember();
   if (!user) return Response.json({ error: "请先以已通过审核的成员身份登录。" }, { status: 401 });
@@ -30,7 +74,7 @@ export async function POST(request: Request) {
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.from("privacy_requests").insert({ user_id: user.id, photo_id: photo.id, kind: parsed.data.kind, message: parsed.data.message }).select("id,status,created_at").single();
-  if (error?.code === "23505") return Response.json({ error: "这张照片已有相同的待处理申请。" }, { status: 409 });
+  if (error?.code === "23505") return Response.json({ error: "这份内容已有相同的待处理申请。" }, { status: 409 });
   if (error || !data) return Response.json({ error: "申请提交失败，请稍后再试。" }, { status: 500 });
   return Response.json({ request: { id: data.id, photoId: photo.id, kind: parsed.data.kind, message: parsed.data.message, status: data.status, createdAt: data.created_at } }, { status: 201 });
 }

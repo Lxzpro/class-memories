@@ -4,13 +4,18 @@ import { canViewPhoto, filterVisiblePhotos } from "@/lib/authz";
 import { DEMO_MODE } from "@/lib/config";
 import { mediaTypeFromObjectKey } from "@/lib/media";
 import { MOCK_COMMENTS, MOCK_PHOTOS, MOCK_PROFILES } from "@/lib/mock-data";
+import { getPublicProfileName } from "@/lib/profile-identity";
 import { getStorageAdapter } from "@/lib/storage";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Photo, PhotoComment, PhotoVisibility, Profile, ReviewStatus } from "@/types/domain";
+import type { Photo, PhotoComment, PhotoVisibility, Profile, ReviewStatus, UserRole } from "@/types/domain";
 
 type RelatedRow = Record<string, unknown>;
 
-function mapPhoto(row: RelatedRow, names: Map<string, string> = new Map()): Photo {
+function mapPhoto(
+  row: RelatedRow,
+  names: Map<string, string> = new Map(),
+  roles: Map<string, UserRole> = new Map(),
+): Photo {
   const peopleRows = Array.isArray(row.photo_people) ? row.photo_people as RelatedRow[] : [];
   const accessRows = Array.isArray(row.photo_access) ? row.photo_access as RelatedRow[] : [];
   const tagRows = Array.isArray(row.photo_tags) ? row.photo_tags as RelatedRow[] : [];
@@ -29,7 +34,10 @@ function mapPhoto(row: RelatedRow, names: Map<string, string> = new Map()): Phot
     visibility: String(row.visibility) as PhotoVisibility,
     selectedUserIds: accessRows.map((item) => String(item.user_id)),
     downloadAllowed: Boolean(row.download_allowed), reviewStatus: String(row.review_status) as ReviewStatus,
-    uploadedBy, uploaderName: names.get(uploadedBy) ?? "班级成员", createdAt: String(row.created_at),
+    uploadedBy,
+    uploaderName: names.get(uploadedBy) ?? "班级成员",
+    uploaderRole: roles.get(uploadedBy),
+    createdAt: String(row.created_at),
   };
 }
 
@@ -48,7 +56,7 @@ async function signPhoto(photo: Photo): Promise<Photo> {
 export type UploadMemberOption = { id: string; name: string };
 
 export async function getUploadMemberOptions(): Promise<UploadMemberOption[]> {
-  if (DEMO_MODE) return MOCK_PROFILES.filter((profile) => profile.status === "approved").map((profile) => ({ id: profile.id, name: profile.displayName }));
+  if (DEMO_MODE) return MOCK_PROFILES.filter((profile) => profile.status === "approved").map((profile) => ({ id: profile.id, name: getPublicProfileName(profile) }));
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.from("member_directory").select("id,display_name").order("display_name");
   return (data ?? []).map((row) => ({ id: String(row.id), name: String(row.display_name) }));
@@ -103,12 +111,22 @@ async function getVisibleMedia(user: Profile, mediaType?: "video"): Promise<Phot
   }
   const [{ data, error }, { data: directory }, blockedPhotoIds] = await Promise.all([
     photosQuery.order("created_at", { ascending: false }),
-    supabase.from("member_directory").select("id,display_name"),
+    supabase.from("member_directory").select("id,display_name,role"),
     getBlockedDownloadPhotoIds(user),
   ]);
   if (error) throw new Error("无法读取照片列表");
   const names = new Map((directory ?? []).map((row) => [String(row.id), String(row.display_name)]));
-  const photos = applyDownloadConsent(user, (data ?? []).map((row) => mapPhoto(row as RelatedRow, names)), blockedPhotoIds);
+  const roles = new Map(
+    (directory ?? []).map((row) => [
+      String(row.id),
+      row.role === "admin" ? "admin" as const : "member" as const,
+    ]),
+  );
+  const photos = applyDownloadConsent(
+    user,
+    (data ?? []).map((row) => mapPhoto(row as RelatedRow, names, roles)),
+    blockedPhotoIds,
+  );
   return Promise.all(photos.map(signPhoto));
 }
 
@@ -140,7 +158,7 @@ export async function getOwnedMedia(user: Profile): Promise<Photo[]> {
       .order("created_at", { ascending: false }),
     admin
       .from("profiles")
-      .select("id,display_name,show_real_name")
+      .select("id,display_name,real_name,show_real_name,role")
       .eq("status", "approved"),
   ]);
   if (error) throw new Error("无法读取你上传的媒体");
@@ -148,13 +166,21 @@ export async function getOwnedMedia(user: Profile): Promise<Photo[]> {
   const names = new Map(
     (profiles ?? []).map((profile) => [
       String(profile.id),
-      profile.show_real_name
-        ? String(profile.display_name)
-        : "匿名同学",
+      getPublicProfileName({
+        displayName: String(profile.display_name),
+        realName: typeof profile.real_name === "string" ? profile.real_name : null,
+        showRealName: Boolean(profile.show_real_name),
+      }),
+    ]),
+  );
+  const roles = new Map(
+    (profiles ?? []).map((profile) => [
+      String(profile.id),
+      profile.role === "admin" ? "admin" as const : "member" as const,
     ]),
   );
   return Promise.all(
-    (data ?? []).map((row) => signPhoto(mapPhoto(row as RelatedRow, names))),
+    (data ?? []).map((row) => signPhoto(mapPhoto(row as RelatedRow, names, roles))),
   );
 }
 
@@ -167,12 +193,22 @@ export async function getVisiblePhoto(user: Profile, id: string): Promise<Photo 
   const supabase = await createSupabaseServerClient();
   const [{ data }, { data: directory }, blockedPhotoIds] = await Promise.all([
     supabase.from("photos").select("*, photo_people(user_id, consent_status), photo_access(user_id), photo_tags(tags(name))").eq("id", id).maybeSingle(),
-    supabase.from("member_directory").select("id,display_name"),
+    supabase.from("member_directory").select("id,display_name,role"),
     getBlockedDownloadPhotoIds(user, [id]),
   ]);
   const names = new Map((directory ?? []).map((row) => [String(row.id), String(row.display_name)]));
+  const roles = new Map(
+    (directory ?? []).map((row) => [
+      String(row.id),
+      row.role === "admin" ? "admin" as const : "member" as const,
+    ]),
+  );
   if (!data) return null;
-  const [photo] = applyDownloadConsent(user, [mapPhoto(data as RelatedRow, names)], blockedPhotoIds);
+  const [photo] = applyDownloadConsent(
+    user,
+    [mapPhoto(data as RelatedRow, names, roles)],
+    blockedPhotoIds,
+  );
   return signPhoto(photo);
 }
 

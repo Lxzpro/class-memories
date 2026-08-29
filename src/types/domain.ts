@@ -8,6 +8,7 @@ export interface Profile {
   id: string;
   email: string;
   displayName: string;
+  realName: string | null;
   avatarKey: string | null;
   role: UserRole;
   status: UserStatus;
@@ -38,6 +39,7 @@ export interface Photo {
   reviewStatus: ReviewStatus;
   uploadedBy: string;
   uploaderName: string;
+  uploaderRole?: UserRole;
   createdAt: string;
 }
 

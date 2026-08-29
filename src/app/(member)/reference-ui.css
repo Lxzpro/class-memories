@@ -928,29 +928,8 @@
     font-size: 13px;
   }
 
-  .mobile-memory-filters {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(70px, 1fr));
-    gap: 9px;
-    overflow-x: auto;
+  .home-uploader-filter {
     padding: 14px 0 8px;
-    scrollbar-width: none;
-  }
-
-  .mobile-memory-filters button {
-    height: 40px;
-    border: 0;
-    border-radius: 999px;
-    background: #f7f7f5;
-    color: #727d89;
-    font-size: 12px;
-    white-space: nowrap;
-  }
-
-  .mobile-memory-filters button.active {
-    border: 1px solid rgba(65, 142, 232, 0.18);
-    background: #eef6ff;
-    color: var(--reference-blue);
   }
 
   .mobile-memory-grid {

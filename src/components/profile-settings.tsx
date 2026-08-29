@@ -2,11 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { OwnedMediaManager } from "@/components/owned-media-manager";
 import { ProfileAvatarEditor } from "@/components/profile-avatar-editor";
+import { PrivacyRequestHistory } from "@/components/privacy-request-history";
 import type { UploadMemberOption } from "@/lib/photos";
+import { getPublicProfileName } from "@/lib/profile-identity";
 import type { Photo, Profile } from "@/types/domain";
 
 type Preferences = Pick<
@@ -31,8 +34,6 @@ type Props = {
 
 type ProfileTab = "about" | "favorites" | "uploads" | "privacy";
 
-const privacyReasons = ["不想公开", "不喜欢这张照片", "涉及个人隐私", "其他"];
-
 export function ProfileSettings({
   user,
   ownedMedia: initialOwnedMedia,
@@ -44,27 +45,31 @@ export function ProfileSettings({
   initialTab = "about",
   initialManageId = null,
 }: Props) {
+  const router = useRouter();
   const [ownedMedia, setOwnedMedia] = useState(initialOwnedMedia);
   const [favoriteIds, setFavoriteIds] = useState(initialFavoriteIds);
   const [saved, setSaved] = useState(false);
+  const [preferenceError, setPreferenceError] = useState("");
+  const [savingPreference, setSavingPreference] = useState<
+    "showRealName" | "allowOriginalDownload" | null
+  >(null);
+  const preferenceBusyRef = useRef(false);
   const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
-  const [privacyReason, setPrivacyReason] = useState(privacyReasons[0]);
+  const [identity, setIdentity] = useState({
+    displayName: user.displayName,
+    realName: user.realName ?? "",
+  });
+  const [identityDraft, setIdentityDraft] = useState(identity);
+  const [identityState, setIdentityState] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const [identityFeedback, setIdentityFeedback] = useState("");
   const [preferences, setPreferences] = useState<Preferences>({
     showRealName: user.showRealName,
     allowOriginalDownload: user.allowOriginalDownload,
     reduceMotion: false,
     soundEnabled: false,
   });
-  const [privacyForm, setPrivacyForm] = useState({
-    photoId:
-      relevantPhotos.find((photo) => photo.uploadedBy !== user.id)?.id ?? "",
-    kind: "hide" as "hide" | "delete",
-    message: "",
-  });
-  const [privacyState, setPrivacyState] = useState<
-    "idle" | "sending" | "sent" | "error"
-  >("idle");
-  const [privacyMessage, setPrivacyMessage] = useState("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -89,45 +94,81 @@ export function ProfileSettings({
   }, [demoMode]);
 
   async function toggle(key: keyof Preferences) {
-    const next = { ...preferences, [key]: !preferences[key] };
-    setPreferences(next);
-    setSaved(false);
-    window.localStorage.setItem("reduce-motion", String(next.reduceMotion));
-    window.localStorage.setItem("sound-enabled", String(next.soundEnabled));
-    const response = await fetch("/api/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(next),
-    });
-    if (response.ok) setSaved(true);
-  }
+    const previousValue = preferences[key];
+    const nextValue = !previousValue;
 
-  async function submitPrivacyRequest(event: React.FormEvent) {
-    event.preventDefault();
-    if (!privacyForm.photoId) return;
-    setPrivacyState("sending");
-    setPrivacyMessage("");
-    const combinedMessage = privacyForm.message.trim()
-      ? `${privacyReason}：${privacyForm.message.trim()}`
-      : privacyReason;
+    if (key === "reduceMotion" || key === "soundEnabled") {
+      setPreferences((current) => ({ ...current, [key]: nextValue }));
+      window.localStorage.setItem(
+        key === "reduceMotion" ? "reduce-motion" : "sound-enabled",
+        String(nextValue),
+      );
+      setPreferenceError("");
+      setSaved(true);
+      return;
+    }
+
+    if (preferenceBusyRef.current) return;
+    preferenceBusyRef.current = true;
+    setSavingPreference(key);
+    setPreferences((current) => ({ ...current, [key]: nextValue }));
+    setSaved(false);
+    setPreferenceError("");
     try {
-      const response = await fetch("/api/privacy-requests", {
-        method: "POST",
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...privacyForm, message: combinedMessage }),
+        body: JSON.stringify({ [key]: nextValue }),
       });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setPrivacyState("error");
-        setPrivacyMessage(result.error || "提交失败，请稍后再试。");
+      if (response.ok) {
+        setSaved(true);
+        if (key === "showRealName") router.refresh();
         return;
       }
-      setPrivacyState("sent");
-      setPrivacyMessage("申请已交给管理员；接受后内容会先从相册隐藏。");
-      setPrivacyForm((current) => ({ ...current, message: "" }));
     } catch {
-      setPrivacyState("error");
-      setPrivacyMessage("网络连接失败，请稍后再试。");
+      // Restore only the server-backed preference changed by this request.
+    } finally {
+      preferenceBusyRef.current = false;
+      setSavingPreference(null);
+    }
+    setPreferences((current) => ({ ...current, [key]: previousValue }));
+    setPreferenceError("保存失败，开关已恢复，请检查网络后重试。");
+  }
+
+  async function saveIdentity(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIdentityState("saving");
+    setIdentityFeedback("");
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName: identityDraft.displayName.trim(),
+          realName: identityDraft.realName.trim(),
+        }),
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        profile?: { displayName?: string; realName?: string | null };
+      };
+      if (!response.ok) {
+        setIdentityState("error");
+        setIdentityFeedback(result.error || "个人资料保存失败，请稍后再试。");
+        return;
+      }
+      const nextIdentity = {
+        displayName: result.profile?.displayName ?? identityDraft.displayName.trim(),
+        realName: result.profile?.realName ?? "",
+      };
+      setIdentity(nextIdentity);
+      setIdentityDraft(nextIdentity);
+      setIdentityState("saved");
+      setIdentityFeedback("昵称和真实姓名已保存。");
+      router.refresh();
+    } catch {
+      setIdentityState("error");
+      setIdentityFeedback("网络连接失败，请稍后再试。");
     }
   }
 
@@ -176,38 +217,43 @@ export function ProfileSettings({
       }),
     [ownedById, relevantPhotos, user.id],
   );
-  const requestablePhotos = currentRelevantPhotos.filter(
-    (photo) => photo.uploadedBy !== user.id,
-  );
   const favoritePhotos = currentVisiblePhotos.filter((photo) =>
     favoriteIds.includes(photo.id),
   );
-  const selectedPrivacyPhoto =
-    requestablePhotos.find((photo) => photo.id === privacyForm.photoId) ??
-    requestablePhotos[0] ??
-    null;
   const displayedPhotos = useMemo(() => {
     if (activeTab === "favorites") return favoritePhotos;
-    if (activeTab === "uploads") return [];
+    if (activeTab === "uploads" || activeTab === "privacy") return [];
     return currentRelevantPhotos;
   }, [activeTab, currentRelevantPhotos, favoritePhotos]);
   const displayedCount =
     activeTab === "uploads" ? ownedMedia.length : displayedPhotos.length;
+  const publicName = getPublicProfileName({
+    displayName: identity.displayName,
+    realName: identity.realName || null,
+    showRealName: preferences.showRealName,
+  });
 
   const tabCopy = {
     about: ["关于我的照片", "这些照片记录了我在校园里的时光"],
     favorites: ["我的收藏", "只有你仍有权限查看的照片会出现在这里"],
     uploads: ["我的上传", "照片和视频都由你直接编辑、隐藏或永久删除"],
-    privacy: ["与我相关的内容", "对别人上传且与你相关的内容申请处理"],
+    privacy: ["个人资料与申请", "管理姓名公开方式，并查看隐私申请的处理进度"],
   }[activeTab];
 
   return (
     <div className="profile-reference">
       <section className="profile-reference-hero">
-        <ProfileAvatarEditor user={user} />
+        <ProfileAvatarEditor
+          user={{
+            ...user,
+            ...identity,
+            displayName: publicName,
+            realName: identity.realName || null,
+          }}
+        />
         <div>
           <p>{user.role === "admin" ? "班级相册管理员" : "班级成员"}</p>
-          <h1>{user.displayName}<span aria-hidden="true">⌁</span></h1>
+          <h1>{publicName}<span aria-hidden="true">⌁</span></h1>
           <small>
             出现在 {currentRelevantPhotos.length} 份回忆里 · 收藏 {favoritePhotos.length} 份 · 上传 {ownedMedia.length} 份
           </small>
@@ -225,6 +271,7 @@ export function ProfileSettings({
           <button
             type="button"
             className={activeTab === value ? "active" : ""}
+            aria-pressed={activeTab === value}
             onClick={() => setActiveTab(value)}
             key={value}
           >
@@ -237,166 +284,122 @@ export function ProfileSettings({
         className={`profile-reference-layout${activeTab === "privacy" ? " privacy-active" : ""}${activeTab === "uploads" ? " uploads-active" : ""}`}
       >
         <main className="profile-photo-library">
-          <header>
-            <div>
-              <h2>{tabCopy[0]}<span aria-hidden="true">⌁</span></h2>
-              <p>{tabCopy[1]}</p>
-            </div>
-            <span>{displayedCount} 份</span>
-          </header>
-
-          {activeTab === "uploads" ? (
-            <OwnedMediaManager
-              media={ownedMedia}
-              members={members}
-              initialManageId={initialManageId}
-              onChange={setOwnedMedia}
-            />
-          ) : displayedPhotos.length > 0 ? (
-            <div className="profile-photo-grid">
-              {displayedPhotos.map((photo, index) => (
-                <Link
-                  href={`${photo.mediaType === "video" ? "/videos" : "/photos"}?open=${photo.id}`}
-                  key={photo.id}
-                >
-                  <div>
-                    <Image
-                      src={photo.thumbnailUrl}
-                      alt={photo.title}
-                      fill
-                      sizes="(max-width: 760px) 48vw, 220px"
-                      unoptimized
-                      loading={index < 2 ? "eager" : "lazy"}
-                      suppressHydrationWarning
-                    />
-                    {favoriteIds.includes(photo.id) && <span>♥</span>}
-                  </div>
-                  <h3>{photo.title}</h3>
-                  <p>⌖ {photo.location || "地点未填写"} · {photo.createdAt.slice(0, 10)}</p>
-                </Link>
-              ))}
-            </div>
+          {activeTab === "privacy" ? (
+            <PrivacyRequestHistory />
           ) : (
-            <div className="profile-photo-empty">
-              <span aria-hidden="true">⌁</span>
-              <b>这里暂时还没有内容</b>
-              <p>去媒体墙看看，或上传一段你记得的时光。</p>
-            </div>
-          )}
+            <>
+              <header>
+                <div>
+                  <h2>{tabCopy[0]}<span aria-hidden="true">⌁</span></h2>
+                  <p>{tabCopy[1]}</p>
+                </div>
+                <span>{displayedCount} 份</span>
+              </header>
 
+              {activeTab === "uploads" ? (
+                <OwnedMediaManager
+                  media={ownedMedia}
+                  members={members}
+                  initialManageId={initialManageId}
+                  onChange={setOwnedMedia}
+                />
+              ) : displayedPhotos.length > 0 ? (
+                <div className="profile-photo-grid">
+                  {displayedPhotos.map((photo, index) => (
+                    <Link
+                      href={`${photo.mediaType === "video" ? "/videos" : "/photos"}?open=${photo.id}`}
+                      key={photo.id}
+                    >
+                      <div>
+                        <Image
+                          src={photo.thumbnailUrl}
+                          alt={photo.title}
+                          fill
+                          sizes="(max-width: 760px) 48vw, 220px"
+                          unoptimized
+                          loading={index < 2 ? "eager" : "lazy"}
+                          suppressHydrationWarning
+                        />
+                        {favoriteIds.includes(photo.id) && <span>♥</span>}
+                      </div>
+                      <h3>{photo.title}</h3>
+                      <p>⌖ {photo.location || "地点未填写"} · {photo.createdAt.slice(0, 10)}</p>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="profile-photo-empty">
+                  <span aria-hidden="true">⌁</span>
+                  <b>这里暂时还没有内容</b>
+                  <p>去媒体墙看看，或上传一段你记得的时光。</p>
+                </div>
+              )}
+            </>
+          )}
         </main>
 
         <aside className="profile-reference-aside">
           <form
-            id="profile-privacy-request"
-            className="privacy-request-form profile-privacy-card"
-            onSubmit={submitPrivacyRequest}
+            className="profile-identity-card"
+            onSubmit={saveIdentity}
           >
-            <div className="privacy-request-heading">
-              <p>
-                <b>申请处理他人上传的内容</b>
-                <span>只有你和管理员能看到申请内容</span>
-              </p>
-              <small>▢</small>
+            <div className="profile-identity-heading">
+              <div>
+                <small>PROFILE IDENTITY</small>
+                <h2>我的姓名</h2>
+              </div>
+              {identityState === "saved" && <span>已保存</span>}
             </div>
-            {requestablePhotos.length > 0 ? (
-              <>
-                {selectedPrivacyPhoto && (
-                  <div className="privacy-photo-preview" key={selectedPrivacyPhoto.id}>
-                    <Link
-                      href={`${selectedPrivacyPhoto.mediaType === "video" ? "/videos" : "/photos"}?open=${selectedPrivacyPhoto.id}`}
-                      aria-label={`查看内容：${selectedPrivacyPhoto.title}`}
-                    >
-                      <Image
-                        src={selectedPrivacyPhoto.previewUrl}
-                        alt={selectedPrivacyPhoto.title}
-                        fill
-                        sizes="(max-width: 760px) calc(100vw - 70px), 160px"
-                        unoptimized
-                        suppressHydrationWarning
-                      />
-                      <span>预览内容</span>
-                    </Link>
-                    <div>
-                      <b>{selectedPrivacyPhoto.title}</b>
-                      <p>{selectedPrivacyPhoto.location || "地点未填写"}</p>
-                    </div>
-                  </div>
-                )}
-
-                <label className="profile-photo-select">
-                  <span>选择照片或视频</span>
-                  <select
-                    value={privacyForm.photoId}
-                    onChange={(event) =>
-                      setPrivacyForm({ ...privacyForm, photoId: event.target.value })
-                    }
-                  >
-                    {requestablePhotos.map((photo) => (
-                      <option key={photo.id} value={photo.id}>{photo.title}</option>
-                    ))}
-                  </select>
-                </label>
-
-                <fieldset className="privacy-kind-options">
-                  <legend>选择申请类型</legend>
-                  <label className={privacyForm.kind === "hide" ? "active" : ""}>
-                    <input
-                      type="radio"
-                      name="privacy-kind"
-                      checked={privacyForm.kind === "hide"}
-                      onChange={() => setPrivacyForm({ ...privacyForm, kind: "hide" })}
-                    />
-                    <b>隐藏<small>从个人视图中隐藏</small></b>
-                  </label>
-                  <label className={privacyForm.kind === "delete" ? "active" : ""}>
-                    <input
-                      type="radio"
-                      name="privacy-kind"
-                      checked={privacyForm.kind === "delete"}
-                      onChange={() => setPrivacyForm({ ...privacyForm, kind: "delete" })}
-                    />
-                    <b>删除<small>申请从系统中永久删除</small></b>
-                  </label>
-                </fieldset>
-
-                <fieldset className="privacy-reason-options">
-                  <legend>选择原因（单选）</legend>
-                  <div>
-                    {privacyReasons.map((reason) => (
-                      <button
-                        type="button"
-                        className={privacyReason === reason ? "active" : ""}
-                        onClick={() => setPrivacyReason(reason)}
-                        key={reason}
-                      >
-                        {reason}
-                      </button>
-                    ))}
-                  </div>
-                </fieldset>
-
-                <label className="privacy-note">
-                  补充说明（选填）
-                  <textarea
-                    maxLength={Math.max(0, 499 - privacyReason.length)}
-                    value={privacyForm.message}
-                    onChange={(event) =>
-                      setPrivacyForm({ ...privacyForm, message: event.target.value })
-                    }
-                    placeholder="可以简单说明原因，我们会认真处理。"
-                  />
-                </label>
-                <button type="submit" disabled={privacyState === "sending"}>
-                  <span>{privacyState === "sending" ? "正在提交…" : "▢ 提交申请"}</span>
-                </button>
-                {privacyMessage && (
-                  <p className={`privacy-feedback ${privacyState}`}>{privacyMessage}</p>
-                )}
-              </>
-            ) : (
-              <p className="privacy-empty">
-                目前没有别人上传且与你相关的内容。
+            <p>
+              昵称始终是你的备用公开名称；真实姓名只会在你开启下方开关时向同学显示。
+            </p>
+            <label>
+              <span>昵称</span>
+              <input
+                type="text"
+                required
+                minLength={2}
+                maxLength={30}
+                autoComplete="nickname"
+                value={identityDraft.displayName}
+                onChange={(event) => {
+                  setIdentityDraft((current) => ({
+                    ...current,
+                    displayName: event.target.value,
+                  }));
+                  setIdentityState("idle");
+                  setIdentityFeedback("");
+                }}
+              />
+            </label>
+            <label>
+              <span>真实姓名 <small>旧账号可暂时不填</small></span>
+              <input
+                type="text"
+                minLength={2}
+                maxLength={30}
+                autoComplete="name"
+                value={identityDraft.realName}
+                onChange={(event) => {
+                  setIdentityDraft((current) => ({
+                    ...current,
+                    realName: event.target.value,
+                  }));
+                  setIdentityState("idle");
+                  setIdentityFeedback("");
+                }}
+                placeholder="填写你在班级里的真实姓名"
+              />
+            </label>
+            <button type="submit" disabled={identityState === "saving"}>
+              {identityState === "saving" ? "正在保存…" : "保存姓名资料"}
+            </button>
+            {identityFeedback && (
+              <p
+                className={`profile-identity-feedback ${identityState}`}
+                role={identityState === "error" ? "alert" : "status"}
+              >
+                {identityFeedback}
               </p>
             )}
           </form>
@@ -414,11 +417,19 @@ export function ProfileSettings({
                     type="checkbox"
                     checked={preferences[row.key]}
                     onChange={() => toggle(row.key)}
+                    disabled={
+                      savingPreference !== null &&
+                      (row.key === "showRealName" ||
+                        row.key === "allowOriginalDownload")
+                    }
                   />
                   <i aria-hidden="true" />
                 </label>
               ))}
             </div>
+            {preferenceError && (
+              <p className="profile-preference-error" role="alert">{preferenceError}</p>
+            )}
           </section>
 
           <LogoutButton className="profile-logout" />

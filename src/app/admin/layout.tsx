@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { BrandLogo } from "@/components/brand-logo";
 import { AdminNavigation } from "@/components/admin-navigation";
 import { UserAvatar } from "@/components/user-avatar";
+import { getPublicProfileName } from "@/lib/profile-identity";
 import "./admin.css";
 import "./admin-redesign.css";
 import "./reference-admin.css";
@@ -18,6 +19,8 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const admin = await requireAdmin();
+  const publicName = getPublicProfileName(admin);
+  const publicAdmin = { ...admin, displayName: publicName };
   return (
     <div className="admin-shell">
       <aside className="admin-sidebar">
@@ -35,10 +38,10 @@ export default async function AdminLayout({
           </Link>
           <div className="admin-user">
             <i>
-              <UserAvatar user={admin} size={38} />
+              <UserAvatar user={publicAdmin} size={38} />
             </i>
             <span>
-              <b>{admin.displayName}</b>
+              <b>{publicName}</b>
               <small>管理员</small>
             </span>
           </div>

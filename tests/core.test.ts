@@ -3,7 +3,12 @@ import { canAccessMemberArea, canManageSite, canViewPhoto, filterVisiblePhotos }
 import { toggleFavoriteIds } from "@/lib/favorites";
 import { DEMO_MODE, getMissingProductionEnv, shouldUseDemoMode } from "@/lib/config";
 import { evaluateInvite } from "@/lib/invites";
-import { filterPhotos } from "@/lib/photo-filter";
+import {
+  ALL_UPLOADERS,
+  MY_UPLOADS,
+  filterPhotos,
+  summarizeUploaders,
+} from "@/lib/photo-filter";
 import { chooseRandomId, pushRecentId } from "@/lib/random";
 import { checkRateLimit, resetRateLimit } from "@/lib/security/rate-limit";
 import {
@@ -15,10 +20,10 @@ import {
 } from "@/lib/security/tokens";
 import type { InviteCodeRecord, Photo, Profile } from "@/types/domain";
 
-const member: Profile = { id: "member", email: "m@example.com", displayName: "同学", avatarKey: null, role: "member", status: "approved", showRealName: true, allowOriginalDownload: true, createdAt: "2026-01-01" };
+const member: Profile = { id: "member", email: "m@example.com", displayName: "同学", realName: "李同学", avatarKey: null, role: "member", status: "approved", showRealName: true, allowOriginalDownload: true, createdAt: "2026-01-01" };
 const admin: Profile = { ...member, id: "admin", role: "admin" };
 const pending: Profile = { ...member, id: "pending", status: "pending" };
-const basePhoto: Photo = { id: "photo", title: "操场合照", description: "运动会", originalKey: "originals/photo/x.jpg", previewKey: "previews/photo.webp", thumbnailKey: "thumbnails/photo.webp", mediaType: "photo", mediaUrl: "/preview", previewUrl: "/preview", thumbnailUrl: "/thumb", width: 1200, height: 900, location: "操场", people: [], tags: ["操场", "运动会"], visibility: "class", selectedUserIds: [], downloadAllowed: true, reviewStatus: "published", uploadedBy: "admin", uploaderName: "管理员", createdAt: "2026-01-01" };
+const basePhoto: Photo = { id: "photo", title: "操场合照", description: "运动会", originalKey: "originals/photo/x.jpg", previewKey: "previews/photo.webp", thumbnailKey: "thumbnails/photo.webp", mediaType: "photo", mediaUrl: "/preview", previewUrl: "/preview", thumbnailUrl: "/thumb", width: 1200, height: 900, location: "操场", people: [], tags: ["操场", "运动会"], visibility: "class", selectedUserIds: [], downloadAllowed: true, reviewStatus: "published", uploadedBy: "admin", uploaderName: "管理员", uploaderRole: "admin", createdAt: "2026-01-01" };
 
 describe("member and photo authorization", () => {
   it("blocks pending users and keeps admin access separate", () => {
@@ -82,9 +87,68 @@ describe("invite security", () => {
 describe("photo interactions", () => {
   it("searches titles, people, places and tags", () => {
     const withPerson = { ...basePhoto, people: [{ id: "x", name: "夏宁", consentStatus: "approved" as const }] };
-    expect(filterPhotos([withPerson], "夏宁", "全部")).toHaveLength(1);
-    expect(filterPhotos([withPerson], "操场", "运动会")).toHaveLength(1);
-    expect(filterPhotos([withPerson], "食堂", "全部")).toHaveLength(0);
+    expect(filterPhotos([withPerson], "夏宁", ALL_UPLOADERS)).toHaveLength(1);
+    expect(filterPhotos([withPerson], "运动会", ALL_UPLOADERS)).toHaveLength(1);
+    expect(filterPhotos([withPerson], "食堂", ALL_UPLOADERS)).toHaveLength(0);
+  });
+  it("filters by the current uploader and groups admin uploads as class archive", () => {
+    const memberPhoto = {
+      ...basePhoto,
+      id: "member-photo",
+      uploadedBy: member.id,
+      uploaderName: "同学",
+      uploaderRole: "member" as const,
+      createdAt: "2026-02-01",
+    };
+    const secondAdminPhoto = {
+      ...basePhoto,
+      id: "second-admin-photo",
+      uploadedBy: "another-admin",
+      createdAt: "2026-03-01",
+    };
+    expect(
+      filterPhotos([basePhoto, memberPhoto], "", MY_UPLOADS, member.id),
+    ).toEqual([memberPhoto]);
+    expect(summarizeUploaders([basePhoto, memberPhoto, secondAdminPhoto])).toEqual([
+      expect.objectContaining({
+        id: "class-archive",
+        name: "班级资料",
+        count: 2,
+        isClassArchive: true,
+      }),
+      expect.objectContaining({ id: member.id, name: "同学", count: 1 }),
+    ]);
+  });
+  it("keeps each admin photo's actual uploader name while merging its filter summary", () => {
+    const firstAdminPhoto = {
+      ...basePhoto,
+      uploaderName: "王老师",
+    };
+    const secondAdminPhoto = {
+      ...basePhoto,
+      id: "second-admin-photo",
+      uploadedBy: "another-admin",
+      uploaderName: "李老师",
+      createdAt: "2026-03-01",
+    };
+
+    expect(summarizeUploaders([firstAdminPhoto, secondAdminPhoto])).toEqual([
+      expect.objectContaining({
+        id: "class-archive",
+        name: "班级资料",
+        count: 2,
+        isClassArchive: true,
+      }),
+    ]);
+    expect(firstAdminPhoto.uploaderName).toBe("王老师");
+    expect(secondAdminPhoto.uploaderName).toBe("李老师");
+    expect(
+      filterPhotos(
+        [firstAdminPhoto, secondAdminPhoto],
+        "王老师",
+        "uploader:class-archive",
+      ),
+    ).toEqual([firstAdminPhoto]);
   });
   it("toggles favorites deterministically", () => {
     expect(toggleFavoriteIds([], "photo")).toEqual(["photo"]);

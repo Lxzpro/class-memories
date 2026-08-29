@@ -381,6 +381,71 @@ button, input { font: inherit; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
+/* Contextual privacy request dialog */
+.privacy-dialog-backdrop { position: fixed; inset: 0; z-index: 140; display: grid; place-items: center; padding: 24px; background: rgba(30,44,52,.28); backdrop-filter: blur(14px); animation: modalIn .2s ease both; }
+.privacy-dialog { width: min(580px, 100%); max-height: calc(100svh - 48px); overflow-y: auto; overscroll-behavior: contain; padding: 28px; border: 1px solid rgba(50,69,76,.1); border-radius: 28px; background: #fffdfa; box-shadow: 0 30px 90px rgba(34,49,56,.2); }
+.privacy-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.privacy-dialog > header small { color: #7f9d75; font-size: 10px; font-weight: 700; letter-spacing: .2em; }
+.privacy-dialog > header h2 { margin: 7px 0 0; font-family: var(--font-serif-cn), serif; font-size: 29px; font-weight: 500; letter-spacing: -.02em; }
+.privacy-dialog > header button { width: 44px; height: 44px; flex: 0 0 44px; border: 1px solid var(--line); border-radius: 50%; background: #f6f5f0; color: #42535a; cursor: pointer; font-size: 25px; line-height: 1; }
+.privacy-dialog > header button:disabled { cursor: wait; opacity: .55; }
+.privacy-dialog-media { display: grid; grid-template-columns: 96px minmax(0,1fr); gap: 15px; align-items: center; margin: 22px 0; padding: 10px; border: 1px solid rgba(59,78,84,.09); border-radius: 18px; background: #f6f7f3; }
+.privacy-dialog-media > div:first-child { width: 96px; aspect-ratio: 1; position: relative; overflow: hidden; border-radius: 13px; background: #e7e9e4; }
+.privacy-dialog-media img { object-fit: cover; }
+.privacy-dialog-media > div:first-child > span { position: absolute; right: 7px; bottom: 7px; z-index: 1; padding: 4px 7px; border-radius: 999px; background: rgba(32,47,54,.74); color: white; font-size: 9px; }
+.privacy-dialog-media > div:last-child { min-width: 0; }
+.privacy-dialog-media > div:last-child > b { display: block; overflow: hidden; color: #243b51; font-family: var(--font-serif-cn), serif; font-size: 19px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.privacy-dialog-media > div:last-child > span { margin-top: 10px; display: flex; align-items: center; gap: 8px; color: #748187; font-size: 12px; }
+.privacy-dialog-uploader-avatar { width: 26px; height: 26px; flex: 0 0 26px; overflow: hidden; border-radius: 50%; background: #dde7e1; color: #526575; font-size: 10px; }
+.privacy-dialog fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.privacy-dialog legend, .privacy-dialog-note > span { margin-bottom: 10px; display: block; color: #435960; font-size: 12px; font-weight: 700; }
+.privacy-dialog-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.privacy-dialog-kinds > label { min-height: 76px; display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 1px solid rgba(54,75,81,.12); border-radius: 15px; background: #fff; cursor: pointer; transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+.privacy-dialog-kinds > label:hover { transform: translateY(-1px); }
+.privacy-dialog-kinds > label.active { border-color: rgba(76,141,224,.42); background: #f2f7fd; }
+.privacy-dialog-kinds > label:has(input:focus-visible),
+.privacy-dialog-reasons label:has(input:focus-visible) { outline: 3px solid rgba(76,141,224,.25); outline-offset: 2px; }
+.privacy-dialog-kinds input { width: 18px; height: 18px; flex: 0 0 18px; margin: 1px 0 0; accent-color: #4c8de0; }
+.privacy-dialog-kinds span, .privacy-dialog-kinds b, .privacy-dialog-kinds small { display: block; }
+.privacy-dialog-kinds b { color: #2c424c; font-size: 13px; }
+.privacy-dialog-kinds small { margin-top: 5px; color: #7a878c; font-size: 10px; line-height: 1.55; }
+.privacy-dialog-reasons { margin-top: 20px !important; }
+.privacy-dialog-reasons > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.privacy-dialog-reasons label { min-height: 44px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid rgba(55,74,80,.1); border-radius: 999px; background: #f6f5f1; color: #66767c; cursor: pointer; font-size: 11px; }
+.privacy-dialog-reasons label.active { border-color: rgba(132,157,103,.42); background: #eef3e9; color: #4b6550; }
+.privacy-dialog-reasons input { position: absolute; opacity: 0; pointer-events: none; }
+.privacy-dialog-note { margin-top: 20px; display: block; position: relative; }
+.privacy-dialog-note > span small { display: inline; color: #8b969a; font-weight: 400; }
+.privacy-dialog-note textarea { width: 100%; min-height: 96px; resize: vertical; padding: 13px 14px 26px; border: 1px solid rgba(55,74,80,.13); border-radius: 14px; outline: 0; background: #faf9f6; color: #31474f; font: inherit; font-size: 12px; line-height: 1.7; }
+.privacy-dialog-note textarea:focus { border-color: rgba(76,141,224,.58); box-shadow: 0 0 0 3px rgba(76,141,224,.1); }
+.privacy-dialog-note > small { position: absolute; right: 12px; bottom: 9px; color: #98a1a4; font-size: 9px; }
+.privacy-dialog-feedback { margin: 12px 0 0; color: #a45d54; font-size: 12px; line-height: 1.6; }
+.privacy-dialog-actions { margin-top: 20px; display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+.privacy-dialog-actions button, .privacy-dialog-success button { min-height: 46px; border: 1px solid rgba(52,72,79,.12); border-radius: 13px; background: #f5f4ef; color: #40555d; cursor: pointer; font-size: 12px; font-weight: 700; }
+.privacy-dialog-actions button[type="submit"], .privacy-dialog-success button { border-color: #4c8de0; background: #4c8de0; color: white; }
+.privacy-dialog-actions button:disabled { cursor: wait; opacity: .62; }
+.privacy-dialog-success { padding: 26px 12px 6px; text-align: center; }
+.privacy-dialog-success > span { width: 54px; height: 54px; margin: 0 auto 14px; display: grid; place-items: center; border-radius: 50%; background: #eaf2e4; color: #6f925e; font-size: 25px; }
+.privacy-dialog-success b { display: block; color: #2e4650; font-family: var(--font-serif-cn), serif; font-size: 21px; font-weight: 500; }
+.privacy-dialog-success p { margin: 9px auto 20px; max-width: 390px; color: #718087; font-size: 12px; line-height: 1.75; }
+.privacy-dialog-success button { width: min(240px,100%); }
+
+@media (max-width: 700px) {
+  .privacy-dialog-backdrop { align-items: end; padding: 0; }
+  .privacy-dialog { width: 100%; max-height: 92svh; padding: 24px 20px calc(22px + env(safe-area-inset-bottom)); border-width: 1px 0 0; border-radius: 26px 26px 0 0; }
+  .privacy-dialog > header h2 { font-size: 26px; }
+  .privacy-dialog-media { grid-template-columns: 78px minmax(0,1fr); margin: 18px 0; }
+  .privacy-dialog-media > div:first-child { width: 78px; }
+  .privacy-dialog-kinds { grid-template-columns: 1fr; }
+  .privacy-dialog-kinds > label { min-height: 68px; }
+  .privacy-dialog-kinds b { font-size: 14px; }
+  .privacy-dialog-kinds small { font-size: 12px; }
+  .privacy-dialog-reasons label { min-height: 46px; }
+  .privacy-dialog-reasons label { font-size: 13px; }
+  .privacy-dialog-note textarea { font-size: 16px; }
+  .privacy-dialog-actions { position: sticky; bottom: calc(-22px - env(safe-area-inset-bottom)); margin-inline: -20px; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(rgba(255,253,250,.85),#fffdfa 28%); }
+}
+
 /* Privacy requests */
 .profile-favorites { margin: 20px 0 24px; padding: 18px; border: 1px solid rgba(70,91,83,.09); border-radius: 16px; background: linear-gradient(135deg,#f5f3ed,#f7f7f2); transition: transform .25s ease, box-shadow .25s ease; }
 .profile-favorites:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(50,65,58,.06); }

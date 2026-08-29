@@ -55,6 +55,7 @@ const admin: Profile = {
   id: "admin-id",
   email: "admin@example.com",
   displayName: "管理员",
+  realName: "管理员",
   avatarKey: null,
   role: "admin",
   status: "approved",

@@ -14,6 +14,7 @@ const SESSION_COOKIE = "class_memory_session";
 function mapProfile(row: Record<string, unknown>): Profile {
   return {
     id: String(row.id), email: String(row.email), displayName: String(row.display_name),
+    realName: typeof row.real_name === "string" ? row.real_name : null,
     avatarKey: row.avatar_key ? String(row.avatar_key) : null,
     role: row.role === "admin" ? "admin" : "member",
     status: row.status === "approved" ? "approved" : row.status === "rejected" ? "rejected" : "pending",

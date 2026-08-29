@@ -3,9 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { UploaderFilter } from "@/components/uploader-filter";
+import {
+  ALL_UPLOADERS,
+  filterPhotos,
+  type UploaderFilterValue,
+} from "@/lib/photo-filter";
 import type { Photo, PhotoComment } from "@/types/domain";
-
-const filters = ["全部", "教室", "操场", "朋友", "毕业"];
 
 function stableTime(value: string) {
   const time = value.match(/T(\d{2}):(\d{2})/);
@@ -15,12 +19,14 @@ function stableTime(value: string) {
 export function MemberHomeBoard({
   photos,
   displayName,
+  viewerId,
 }: {
   photos: Photo[];
   displayName: string;
+  viewerId: string;
 }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState("全部");
+  const [uploader, setUploader] = useState<UploaderFilterValue>(ALL_UPLOADERS);
   const [comments, setComments] = useState<PhotoComment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [commentError, setCommentError] = useState("");
@@ -28,24 +34,8 @@ export function MemberHomeBoard({
   const featured = photos[0] ?? null;
 
   const visiblePhotos = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return photos.filter((photo) => {
-      const matchesFilter =
-        filter === "全部" ||
-        photo.tags.some((tag) => tag.includes(filter)) ||
-        photo.location.includes(filter);
-      const haystack = [
-        photo.title,
-        photo.description,
-        photo.location,
-        ...photo.tags,
-        ...photo.people.map((person) => person.name),
-      ]
-        .join(" ")
-        .toLowerCase();
-      return matchesFilter && (!normalized || haystack.includes(normalized));
-    });
-  }, [filter, photos, query]);
+    return filterPhotos(photos, query, uploader, viewerId);
+  }, [photos, query, uploader, viewerId]);
 
   const mobilePhotos = visiblePhotos.slice(0, 8);
   useEffect(() => {
@@ -191,18 +181,14 @@ export function MemberHomeBoard({
               placeholder="搜索照片、地点、人物、回忆…"
             />
           </label>
-          <div className="mobile-memory-filters" aria-label="照片分类">
-            {filters.map((item) => (
-              <button
-                type="button"
-                className={filter === item ? "active" : ""}
-                onClick={() => setFilter(item)}
-                key={item}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
+          <UploaderFilter
+            className="home-uploader-filter"
+            photos={photos}
+            viewerId={viewerId}
+            value={uploader}
+            mediaLabel="照片"
+            onChange={setUploader}
+          />
         </div>
 
         <section className="mobile-memory-grid" aria-label="照片列表">

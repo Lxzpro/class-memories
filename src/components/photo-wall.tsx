@@ -3,22 +3,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PrivacyRequestDialog } from "@/components/privacy-request-dialog";
+import { UploaderFilter } from "@/components/uploader-filter";
 import { UserAvatar } from "@/components/user-avatar";
 import { toggleFavoriteIds } from "@/lib/favorites";
-import { filterPhotos } from "@/lib/photo-filter";
+import {
+  ALL_UPLOADERS,
+  filterPhotos,
+  type UploaderFilterValue,
+} from "@/lib/photo-filter";
 import type { Photo, PhotoComment } from "@/types/domain";
-
-const defaultTags = ["全部", "教室", "操场", "朋友", "搞怪", "毕业", "珍贵"];
 
 const wallCopy = {
   all: {
     searchLabel: "搜索照片",
     searchPlaceholder: "搜索照片、地点、人物、回忆…",
-    filterLabel: "照片标签筛选",
     resultUnit: "份回忆",
     openLabel: "查看照片",
     emptyTitle: "这一页暂时没有照片",
-    emptyDescription: "换一个关键词或标签，再找找看。",
+    emptyDescription: "换一个关键词或上传者，再找找看。",
     loadMore: "还有一些记忆正在显影……",
     download: "⇩ 下载原图",
     close: "关闭照片详情",
@@ -29,11 +32,10 @@ const wallCopy = {
   video: {
     searchLabel: "搜索视频",
     searchPlaceholder: "搜索视频、地点、人物、回忆…",
-    filterLabel: "视频标签筛选",
     resultUnit: "段视频",
     openLabel: "播放视频",
     emptyTitle: "这里还没有视频",
-    emptyDescription: "换一个关键词或标签，或者上传第一段视频回忆。",
+    emptyDescription: "换一个关键词或上传者，或者上传第一段视频回忆。",
     loadMore: "还有一些视频正在加载……",
     download: "⇩ 下载原视频",
     close: "关闭视频详情",
@@ -65,7 +67,7 @@ export function PhotoWall({
   const copy = wallCopy[variant];
   const searchId = variant === "video" ? "video-search" : "photo-search";
   const [query, setQuery] = useState("");
-  const [tag, setTag] = useState("全部");
+  const [uploader, setUploader] = useState<UploaderFilterValue>(ALL_UPLOADERS);
   const [limit, setLimit] = useState(initialLimit);
   const [selectedId, setSelectedId] = useState<string | null>(() =>
     photos.some((photo) => photo.id === initialSelectedId)
@@ -77,14 +79,15 @@ export function PhotoWall({
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [commentError, setCommentError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [privacyRequestPhoto, setPrivacyRequestPhoto] = useState<Photo | null>(null);
   const touchStart = useRef<number | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const modalCloseRef = useRef<HTMLButtonElement>(null);
   const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
   const commentLoadVersion = useRef<Record<string, number>>({});
   const filtered = useMemo(
-    () => filterPhotos(photos, query, tag),
-    [photos, query, tag],
+    () => filterPhotos(photos, query, uploader, viewerId),
+    [photos, query, uploader, viewerId],
   );
   const visible = filtered.slice(0, limit);
   const selectedIndex = filtered.findIndex((photo) => photo.id === selectedId);
@@ -173,10 +176,14 @@ export function PhotoWall({
     },
     [filtered, selectedIndex],
   );
+  const closePrivacyRequest = useCallback(() => {
+    setPrivacyRequestPhoto(null);
+  }, []);
 
   useEffect(() => {
     function keydown(event: KeyboardEvent) {
       if (!selected) return;
+      if (privacyRequestPhoto) return;
       if (event.key === "Tab") {
         const modal = modalRef.current;
         if (!modal) return;
@@ -214,7 +221,7 @@ export function PhotoWall({
     }
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
-  }, [move, selected]);
+  }, [move, privacyRequestPhoto, selected]);
 
   async function toggleFavorite(photoId: string) {
     const next = toggleFavoriteIds(favorites, photoId);
@@ -281,7 +288,15 @@ export function PhotoWall({
         <Link href={`/profile?tab=uploads&manage=${selected.id}`}>
           管理我的上传
         </Link>
-      ) : null}
+      ) : (
+        <button
+          type="button"
+          className="privacy-request-action"
+          onClick={() => setPrivacyRequestPhoto(selected)}
+        >
+          申请处理此内容
+        </button>
+      )}
     </>
   ) : null;
 
@@ -303,21 +318,16 @@ export function PhotoWall({
             placeholder={copy.searchPlaceholder}
           />
         </div>
-        <div className="tag-scroller" aria-label={copy.filterLabel}>
-          {defaultTags.map((item) => (
-            <button
-              key={item}
-              className={tag === item ? "active" : ""}
-              type="button"
-              onClick={() => {
-                setTag(item);
-                setLimit(initialLimit);
-              }}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
+        <UploaderFilter
+          photos={photos}
+          viewerId={viewerId ?? ""}
+          value={uploader}
+          mediaLabel={variant === "video" ? "视频" : "照片"}
+          onChange={(nextUploader) => {
+            setUploader(nextUploader);
+            setLimit(initialLimit);
+          }}
+        />
         <span className="result-count">{filtered.length} {copy.resultUnit}</span>
       </div>
 
@@ -349,7 +359,7 @@ export function PhotoWall({
                     fill
                     sizes="(max-width: 520px) 48vw, (max-width: 900px) 31vw, 20vw"
                     unoptimized
-                    loading={index === 0 ? "eager" : "lazy"}
+                    loading={index < Math.min(initialLimit, 8) ? "eager" : "lazy"}
                     fetchPriority={index === 0 ? "high" : undefined}
                     suppressHydrationWarning
                   />
@@ -401,6 +411,8 @@ export function PhotoWall({
           className="photo-modal"
           role="dialog"
           aria-modal="true"
+          aria-hidden={privacyRequestPhoto ? true : undefined}
+          inert={privacyRequestPhoto ? true : undefined}
           aria-label={selected.title}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setSelectedId(null);
@@ -584,6 +596,13 @@ export function PhotoWall({
             </aside>
           </article>
         </div>
+      )}
+      {privacyRequestPhoto && (
+        <PrivacyRequestDialog
+          key={privacyRequestPhoto.id}
+          photo={privacyRequestPhoto}
+          onClose={closePrivacyRequest}
+        />
       )}
     </>
   );
