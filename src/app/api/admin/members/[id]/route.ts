@@ -1,6 +1,8 @@
 import { getApiAdmin } from "@/lib/api-auth";
 import { writeAdminLog } from "@/lib/admin-audit";
 import { DEMO_MODE } from "@/lib/config";
+import { avatarKeyBelongsToUser } from "@/lib/profile-avatars";
+import { getStorageAdapter } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 export async function DELETE(
@@ -29,7 +31,7 @@ export async function DELETE(
   const supabase = await createSupabaseAdminClient();
   const { data: target, error: targetError } = await supabase
     .from("profiles")
-    .select("id,display_name,role,status")
+    .select("id,display_name,role,status,avatar_key")
     .eq("id", id)
     .maybeSingle();
 
@@ -69,6 +71,14 @@ export async function DELETE(
       { error: "删除账号失败，请稍后重试。" },
       { status: 500 },
     );
+  }
+
+  if (avatarKeyBelongsToUser(id, target.avatar_key)) {
+    try {
+      await getStorageAdapter().deleteObjects([target.avatar_key]);
+    } catch (error) {
+      console.error("成员账号已删除，但头像对象清理失败。", error);
+    }
   }
 
   await writeAdminLog(admin.id, "member_deleted", "profile", id, {

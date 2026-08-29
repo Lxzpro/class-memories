@@ -40,6 +40,119 @@
   font-size: 48px;
 }
 
+.profile-avatar-editor {
+  width: 150px;
+  display: grid;
+  place-items: center;
+  gap: 7px;
+  text-align: center;
+}
+
+.profile-avatar-trigger {
+  position: relative;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  outline: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.profile-avatar-trigger:focus-visible {
+  outline: 3px solid rgba(65, 142, 232, 0.48);
+  outline-offset: 4px;
+}
+
+.profile-avatar-trigger:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.profile-avatar-camera {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  position: absolute;
+  right: 1px;
+  bottom: 3px;
+  z-index: 3;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: #4f91e8;
+  box-shadow: 0 7px 18px rgba(48, 83, 123, 0.2);
+  color: white;
+}
+
+.profile-avatar-camera svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.profile-avatar-input {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.profile-avatar-actions {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.profile-avatar-actions button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(21, 41, 69, 0.09);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #53667d;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.profile-avatar-actions button:first-child {
+  border-color: rgba(65, 142, 232, 0.2);
+  background: #eef6ff;
+  color: #397bc6;
+}
+
+.profile-avatar-actions button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.profile-avatar-editor > small {
+  color: #8a949d;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.profile-avatar-feedback {
+  width: 100%;
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.profile-avatar-feedback.success {
+  color: #6f8558;
+}
+
+.profile-avatar-feedback.error {
+  color: #a45e52;
+}
+
 .profile-reference-hero p {
   margin: 0 0 6px;
   color: #87919b;
@@ -606,6 +719,32 @@
     font-size: 32px;
   }
 
+  .profile-avatar-editor {
+    width: 92px;
+    gap: 5px;
+  }
+
+  .profile-avatar-camera {
+    width: 30px;
+    height: 30px;
+    right: -1px;
+    bottom: 1px;
+  }
+
+  .profile-avatar-actions {
+    gap: 3px;
+  }
+
+  .profile-avatar-actions button {
+    min-height: 30px;
+    padding: 0 7px;
+    font-size: 9px;
+  }
+
+  .profile-avatar-editor > small {
+    font-size: 8px;
+  }
+
   .profile-reference-hero h1 {
     font-size: clamp(31px, 9vw, 42px);
   }
@@ -676,6 +815,18 @@
   .profile-reference-avatar {
     width: 72px;
     height: 72px;
+  }
+
+  .profile-avatar-editor {
+    width: 74px;
+  }
+
+  .profile-avatar-actions {
+    flex-direction: column;
+  }
+
+  .profile-avatar-actions button {
+    min-height: 28px;
   }
 
   .privacy-kind-options {

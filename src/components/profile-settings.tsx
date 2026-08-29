@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { OwnedMediaManager } from "@/components/owned-media-manager";
+import { ProfileAvatarEditor } from "@/components/profile-avatar-editor";
 import type { UploadMemberOption } from "@/lib/photos";
 import type { Photo, Profile } from "@/types/domain";
 
@@ -203,7 +204,7 @@ export function ProfileSettings({
   return (
     <div className="profile-reference">
       <section className="profile-reference-hero">
-        <div className="profile-reference-avatar">{user.displayName.slice(0, 1)}</div>
+        <ProfileAvatarEditor user={user} />
         <div>
           <p>{user.role === "admin" ? "班级相册管理员" : "班级成员"}</p>
           <h1>{user.displayName}<span aria-hidden="true">⌁</span></h1>

@@ -7,12 +7,16 @@ const mocks = vi.hoisted(() => ({
   maybeSingle: vi.fn(),
   reassignSelect: vi.fn(),
   rollbackIn: vi.fn(),
+  deleteObjects: vi.fn(),
   writeAdminLog: vi.fn(),
 }));
 
 vi.mock("@/lib/api-auth", () => ({ getApiAdmin: mocks.getApiAdmin }));
 vi.mock("@/lib/admin-audit", () => ({ writeAdminLog: mocks.writeAdminLog }));
 vi.mock("@/lib/config", () => ({ DEMO_MODE: false }));
+vi.mock("@/lib/storage", () => ({
+  getStorageAdapter: vi.fn(() => ({ deleteObjects: mocks.deleteObjects })),
+}));
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseAdminClient: vi.fn(async () => ({
     auth: { admin: { deleteUser: mocks.deleteUser } },
@@ -70,6 +74,8 @@ describe("admin member deletion", () => {
         display_name: "待删除同学",
         role: "member",
         status: "approved",
+        avatar_key:
+          "avatars/members/member-id/018f0f65-6748-7d19-9f52-111f6bc4278a.webp",
       },
       error: null,
     });
@@ -80,6 +86,7 @@ describe("admin member deletion", () => {
     mocks.deleteUser.mockResolvedValue({ error: null });
     mocks.rollbackIn.mockResolvedValue({ error: null });
     mocks.writeAdminLog.mockResolvedValue(undefined);
+    mocks.deleteObjects.mockResolvedValue(undefined);
   });
 
   it("rejects callers who are not administrators", async () => {
@@ -117,6 +124,9 @@ describe("admin member deletion", () => {
       "member-id",
       expect.objectContaining({ reassignedPhotoCount: 1 }),
     );
+    expect(mocks.deleteObjects).toHaveBeenCalledWith([
+      "avatars/members/member-id/018f0f65-6748-7d19-9f52-111f6bc4278a.webp",
+    ]);
   });
 
   it("rolls photo ownership back when auth deletion fails", async () => {
@@ -126,5 +136,6 @@ describe("admin member deletion", () => {
     expect(response.status).toBe(500);
     expect(mocks.rollbackIn).toHaveBeenCalledWith("id", ["photo-id"]);
     expect(mocks.writeAdminLog).not.toHaveBeenCalled();
+    expect(mocks.deleteObjects).not.toHaveBeenCalled();
   });
 });

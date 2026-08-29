@@ -791,6 +791,35 @@
     font-size: 27px;
   }
 
+  .member-shell .profile-avatar-editor {
+    width: 72px;
+    gap: 5px;
+  }
+
+  .member-shell .profile-avatar-camera {
+    width: 29px;
+    height: 29px;
+    right: -1px;
+    bottom: 0;
+  }
+
+  .member-shell .profile-avatar-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .member-shell .profile-avatar-actions button {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 4px;
+    font-size: 9px;
+  }
+
+  .member-shell .profile-avatar-editor > small {
+    font-size: 8px;
+  }
+
   .member-shell .profile-reference-hero h1 {
     font-size: clamp(27px, 8vw, 36px);
   }

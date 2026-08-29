@@ -1,4 +1,8 @@
 import type { MediaType } from "@/types/domain";
+import {
+  MAX_AVATAR_SOURCE_SIZE,
+  MAX_AVATAR_UPLOAD_SIZE,
+} from "@/lib/profile-avatars";
 
 export const MEDIA_INPUT_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/webm";
 export const MAX_IMAGE_FILE_SIZE = 25 * 1024 * 1024;
@@ -18,6 +22,12 @@ export function validateMediaFile(file: File): string | null {
   if (!mediaType) return "仅支持 JPG、PNG、WebP、MP4 或 WebM";
   const limit = mediaType === "video" ? MAX_VIDEO_FILE_SIZE : MAX_IMAGE_FILE_SIZE;
   if (file.size > limit) return mediaType === "video" ? "视频超过 200MB" : "图片超过 25MB";
+  return null;
+}
+
+export function validateAvatarFile(file: File): string | null {
+  if (!IMAGE_TYPES.has(file.type)) return "仅支持 JPG、PNG 或 WebP 图片";
+  if (file.size > MAX_AVATAR_SOURCE_SIZE) return "头像原图不能超过 10MB";
   return null;
 }
 
@@ -117,6 +127,49 @@ async function createWebpVariant(media: DecodedMedia, maxWidth: number, quality:
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", quality));
   if (!blob) throw new Error("媒体封面生成失败");
   return blob;
+}
+
+export async function prepareAvatar(file: File) {
+  const validationError = validateAvatarFile(file);
+  if (validationError) throw new Error(validationError);
+
+  const decoded = await decodeImage(file);
+  try {
+    const outputSize = 512;
+    const sourceSize = Math.min(decoded.width, decoded.height);
+    const sourceX = (decoded.width - sourceSize) / 2;
+    const sourceY = (decoded.height - sourceSize) / 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("浏览器无法处理这张头像");
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(
+      decoded.source,
+      sourceX,
+      sourceY,
+      sourceSize,
+      sourceSize,
+      0,
+      0,
+      outputSize,
+      outputSize,
+    );
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/webp", 0.86),
+    );
+    if (!blob || blob.type !== "image/webp") {
+      throw new Error("当前浏览器无法生成 WebP 头像，请升级浏览器后重试");
+    }
+    if (blob.size > MAX_AVATAR_UPLOAD_SIZE) {
+      throw new Error("头像处理后仍然过大，请换一张图片");
+    }
+    return blob;
+  } finally {
+    decoded.release();
+  }
 }
 
 export async function prepareMedia(file: File) {

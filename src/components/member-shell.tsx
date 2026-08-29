@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { MemberNav } from "@/components/member-nav";
+import { UserAvatar } from "@/components/user-avatar";
 import { DEMO_MODE } from "@/lib/config";
 import type { Profile } from "@/types/domain";
 
@@ -12,8 +13,6 @@ export function MemberShell({
   user: Profile;
   children: ReactNode;
 }) {
-  const initial = user.displayName.slice(0, 1);
-
   return (
     <div className={`member-shell${DEMO_MODE ? " has-demo" : ""}`}>
       {DEMO_MODE && (
@@ -66,7 +65,7 @@ export function MemberShell({
             href="/profile"
             aria-label="进入我的页面"
           >
-            {initial}
+            <UserAvatar user={user} size={44} priority />
           </Link>
         </div>
       </aside>
@@ -95,7 +94,7 @@ export function MemberShell({
           </svg>
         </Link>
         <Link className="profile-chip" href="/profile">
-          <span>{initial}</span>
+          <UserAvatar user={user} size={40} priority />
           <b>{user.displayName}</b>
           <i aria-hidden="true">⌄</i>
         </Link>
