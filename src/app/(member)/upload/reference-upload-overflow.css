@@ -665,6 +665,7 @@
     width: auto;
     min-height: 54px;
     position: fixed;
+    top: auto;
     right: max(14px, env(safe-area-inset-right));
     bottom: calc(86px + env(safe-area-inset-bottom));
     left: max(14px, env(safe-area-inset-left));
