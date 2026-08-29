@@ -67,32 +67,17 @@ function NavIcon({ name }: { name: IconName }) {
   );
 }
 
-export function MemberNav({ admin = false }: { admin?: boolean }) {
+export function MemberNav({
+  admin = false,
+  variant = "desktop",
+}: {
+  admin?: boolean;
+  variant?: "desktop" | "mobile";
+}) {
   const pathname = usePathname();
-  return (
-    <>
-      <nav className="member-desktop-nav" aria-label="班级相册导航">
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            className={`${pathname === item.href ? "active" : ""}${item.icon === "upload" ? " upload-nav" : ""}`}
-            href={item.href}
-            aria-current={pathname === item.href ? "page" : undefined}
-          >
-            <NavIcon name={item.icon} />
-            <span>{item.label}</span>
-          </Link>
-        ))}
-        {admin && (
-          <Link
-            className={pathname.startsWith("/admin") ? "active" : ""}
-            href="/admin"
-          >
-            <NavIcon name="admin" />
-            <span>管理</span>
-          </Link>
-        )}
-      </nav>
+
+  if (variant === "mobile") {
+    return (
       <nav className="member-mobile-nav" aria-label="手机底部导航">
         {mobileItems.map((item) => (
           <Link
@@ -108,6 +93,31 @@ export function MemberNav({ admin = false }: { admin?: boolean }) {
           </Link>
         ))}
       </nav>
-    </>
+    );
+  }
+
+  return (
+    <nav className="member-desktop-nav" aria-label="班级相册导航">
+      {items.map((item) => (
+        <Link
+          key={item.href}
+          className={`${pathname === item.href ? "active" : ""}${item.icon === "upload" ? " upload-nav" : ""}`}
+          href={item.href}
+          aria-current={pathname === item.href ? "page" : undefined}
+        >
+          <NavIcon name={item.icon} />
+          <span>{item.label}</span>
+        </Link>
+      ))}
+      {admin && (
+        <Link
+          className={pathname.startsWith("/admin") ? "active" : ""}
+          href="/admin"
+        >
+          <NavIcon name="admin" />
+          <span>管理</span>
+        </Link>
+      )}
+    </nav>
   );
 }

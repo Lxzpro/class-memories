@@ -9,7 +9,7 @@
     display: flex;
   }
 
-  .member-shell .member-mobile-nav {
+  .member-shell > .member-mobile-nav {
     display: none;
   }
 }
@@ -177,7 +177,7 @@
     color: #245f9f;
   }
 
-  .member-shell .member-mobile-nav {
+  .member-shell > .member-mobile-nav {
     width: auto;
     height: 66px;
     min-height: 66px;
@@ -202,7 +202,7 @@
     -webkit-backdrop-filter: blur(22px) saturate(1.15);
   }
 
-  .member-shell .member-mobile-nav a {
+  .member-shell > .member-mobile-nav a {
     min-width: 0;
     min-height: 54px;
     display: flex;
@@ -220,14 +220,14 @@
       background-color 180ms ease;
   }
 
-  .member-shell .member-mobile-nav a > span {
+  .member-shell > .member-mobile-nav a > span {
     width: 24px;
     height: 24px;
     display: grid;
     place-items: center;
   }
 
-  .member-shell .member-mobile-nav svg {
+  .member-shell > .member-mobile-nav svg {
     width: 22px;
     height: 22px;
     fill: none;
@@ -237,22 +237,22 @@
     stroke-width: 1.75;
   }
 
-  .member-shell .member-mobile-nav small {
+  .member-shell > .member-mobile-nav small {
     font-size: 10px;
     font-weight: 600;
     line-height: 1.1;
   }
 
-  .member-shell .member-mobile-nav a.active {
+  .member-shell > .member-mobile-nav a.active {
     background: #edf5ff;
     color: #347ed2;
   }
 
-  .member-shell .member-mobile-nav a.upload-nav {
+  .member-shell > .member-mobile-nav a.upload-nav {
     color: #71825c;
   }
 
-  .member-shell .member-mobile-nav a.upload-nav > span {
+  .member-shell > .member-mobile-nav a.upload-nav > span {
     width: 48px;
     height: 48px;
     margin-top: -20px;
@@ -263,7 +263,7 @@
     color: white;
   }
 
-  .member-shell .member-mobile-nav a.upload-nav small {
+  .member-shell > .member-mobile-nav a.upload-nav small {
     margin-top: -3px;
   }
 
@@ -934,7 +934,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .member-shell .member-mobile-nav a,
+  .member-shell > .member-mobile-nav a,
   .member-shell :where(.member-mobile-random, .member-mobile-admin, .member-mobile-profile) {
     transition: none;
   }

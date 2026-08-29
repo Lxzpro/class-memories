@@ -30,7 +30,7 @@ export function MemberShell({
             <small>OUR CLASS ARCHIVE</small>
           </span>
         </Link>
-        <MemberNav admin={user.role === "admin"} />
+        <MemberNav admin={user.role === "admin"} variant="desktop" />
         <p className="member-sidebar-note">
           <i aria-hidden="true">⌁</i>
           不按时间，
@@ -70,6 +70,8 @@ export function MemberShell({
           </Link>
         </div>
       </aside>
+
+      <MemberNav variant="mobile" />
 
       <header className="member-topbar">
         <div className="member-archive-context">
