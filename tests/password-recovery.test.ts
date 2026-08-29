@@ -33,6 +33,29 @@ describe("password recovery callback", () => {
     expect(response.headers.get("location")).toBe("https://example.com/forgot-password?error=invalid_recovery");
   });
 
+  it("verifies a recovery token only after the user submits the confirmation form", async () => {
+    auth.verifyOtp.mockResolvedValue({ error: null });
+    const { POST } = await import("@/app/auth/callback/route");
+    const formData = new FormData();
+    formData.set("token_hash", "valid");
+    const response = await POST(new Request("https://example.com/auth/callback", { method: "POST", body: formData }));
+
+    expect(auth.verifyOtp).toHaveBeenCalledWith({ token_hash: "valid", type: "recovery" });
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe("https://example.com/reset-password");
+  });
+
+  it("rejects an expired token submitted from the recovery confirmation page", async () => {
+    auth.verifyOtp.mockResolvedValue({ error: new Error("expired") });
+    const { POST } = await import("@/app/auth/callback/route");
+    const formData = new FormData();
+    formData.set("token_hash", "expired");
+    const response = await POST(new Request("https://example.com/auth/callback", { method: "POST", body: formData }));
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe("https://example.com/forgot-password?error=invalid_recovery");
+  });
+
   it("does not allow an external next URL", async () => {
     auth.verifyOtp.mockResolvedValue({ error: null });
     const { GET } = await import("@/app/auth/callback/route");

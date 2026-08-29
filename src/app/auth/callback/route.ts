@@ -41,3 +41,26 @@ export async function GET(request: Request) {
       : "/login?error=auth_callback";
   return NextResponse.redirect(new URL(errorPath, url.origin));
 }
+
+export async function POST(request: Request) {
+  const url = new URL(request.url);
+  const formData = await request.formData();
+  const tokenHash = formData.get("token_hash");
+
+  if (typeof tokenHash !== "string" || !tokenHash) {
+    return NextResponse.redirect(new URL("/forgot-password?error=invalid_recovery", url.origin), 303);
+  }
+
+  if (DEMO_MODE) {
+    return NextResponse.redirect(new URL("/reset-password", url.origin), 303);
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+
+  if (error) {
+    return NextResponse.redirect(new URL("/forgot-password?error=invalid_recovery", url.origin), 303);
+  }
+
+  return NextResponse.redirect(new URL("/reset-password", url.origin), 303);
+}

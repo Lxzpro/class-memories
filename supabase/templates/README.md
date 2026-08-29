@@ -9,7 +9,7 @@
 3. Subject 填写：“【拾光簿】确认邮箱，完成班级相册注册”。
 4. 将 confirmation.html 的完整内容粘贴到邮件正文并保存。
 5. Authentication → URL Configuration 的 Redirect URLs 至少包含：
-   - https://class-memories-delta.vercel.app/auth/callback?next=/pending
+   - https://www.lxzblog.click/auth/callback?next=/pending
    - 本地调试时可另外加入：http://localhost:3000/auth/callback?next=/pending
 
 注册模板使用 RedirectTo 和 TokenHash 完成服务器端邮箱验证，确认成功后进入成员审核页。
@@ -21,8 +21,8 @@
 3. Subject 填写：“【拾光簿】重置你的班级相册密码”。
 4. 将 recovery.html 的完整内容粘贴到邮件正文并保存。
 5. Authentication → URL Configuration 中确认：
-   - Site URL：https://class-memories-delta.vercel.app
-   - Redirect URLs 至少包含：https://class-memories-delta.vercel.app/auth/callback?next=/reset-password
+   - Site URL：https://www.lxzblog.click
+   - Redirect URLs 至少包含：https://www.lxzblog.click/auth/callback?next=/reset-password
    - 本地调试时可另外加入：http://localhost:3000/auth/callback?next=/reset-password
 
-模板使用 RedirectTo 和 TokenHash 建立服务器端恢复会话；不要改回只使用 ConfirmationURL 的默认链接。
+模板先进入 `/auth/recovery` 人工确认页，再由用户主动提交 TokenHash 建立服务器端恢复会话。这样可避免 QQ 邮箱等安全扫描器提前访问并消耗一次性令牌；不要改回直接验证或只使用 ConfirmationURL 的链接。
