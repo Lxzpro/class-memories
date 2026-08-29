@@ -121,8 +121,8 @@ export function AdminOverview({
             <strong>{draftPhotos.length}</strong>
             <small>张</small>
           </p>
-          <b>待审核</b>
-          <em>等待管理员确认</em>
+          <b>未发布草稿</b>
+          <em>异常中断或历史草稿</em>
         </article>
         <article className="is-sage">
           <span className="metric-icon">{metricIcons.members}</span>
@@ -148,11 +148,11 @@ export function AdminOverview({
         <article className="reference-admin-panel pending-photo-panel">
           <header>
             <div>
-              <h2>待审核照片 <small>（{draftPhotos.length} 张）</small></h2>
-              <p>这些照片正在等待你的审核</p>
+              <h2>未发布草稿 <small>（{draftPhotos.length} 份）</small></h2>
+              <p>成员正常上传会立即展示；这里用于处理异常中断或历史草稿</p>
             </div>
             <Link href="/admin?tab=photos" scroll={false}>
-              全部待审核 <span>›</span>
+              查看全部草稿 <span>›</span>
             </Link>
           </header>
           {draftPhotos.length > 0 ? (
@@ -186,7 +186,7 @@ export function AdminOverview({
                         onUpdatePhoto(photo.id, { reviewStatus: "published" })
                       }
                     >
-                      审核通过
+                      立即发布
                     </button>
                     <Link href="/admin?tab=photos" scroll={false}>
                       查看详情
@@ -198,7 +198,7 @@ export function AdminOverview({
           ) : (
             <div className="reference-empty-state">
               <span>✓</span>
-              <p>暂时没有待审核照片</p>
+              <p>没有未发布的照片或视频草稿</p>
             </div>
           )}
         </article>

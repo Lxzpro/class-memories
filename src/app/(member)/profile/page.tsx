@@ -3,17 +3,39 @@ import { requireApprovedUser } from "@/lib/auth";
 import { DEMO_MODE } from "@/lib/config";
 import {
   getFavoritePhotoIds,
-  getPendingTagRequests,
+  getOwnedMedia,
+  getUploadMemberOptions,
   getVisiblePhotos,
 } from "@/lib/photos";
 
-export default async function ProfilePage() {
+type ProfilePageProps = {
+  searchParams: Promise<{
+    tab?: string | string[];
+    manage?: string | string[];
+  }>;
+};
+
+export default async function ProfilePage({
+  searchParams,
+}: ProfilePageProps) {
   const user = await requireApprovedUser();
-  const [photos, requests, favoriteIds] = await Promise.all([
+  const [photos, ownedMedia, favoriteIds, members] =
+    await Promise.all([
     getVisiblePhotos(user),
-    getPendingTagRequests(user),
+    getOwnedMedia(user),
     getFavoritePhotoIds(user),
+    getUploadMemberOptions(),
   ]);
+  const query = await searchParams;
+  const requestedTab = typeof query.tab === "string" ? query.tab : "";
+  const initialTab =
+    requestedTab === "favorites" ||
+    requestedTab === "uploads" ||
+    requestedTab === "privacy"
+      ? requestedTab
+      : "about";
+  const initialManageId =
+    typeof query.manage === "string" ? query.manage : null;
   const relevantPhotos = photos.filter(
     (photo) =>
       photo.uploadedBy === user.id ||
@@ -24,14 +46,14 @@ export default async function ProfilePage() {
     <div className="profile-page reference-profile-page">
       <ProfileSettings
         user={user}
-        ownPhotoCount={
-          photos.filter((photo) => photo.uploadedBy === user.id).length
-        }
-        pendingTagRequests={requests}
+        ownedMedia={ownedMedia}
+        members={members}
         relevantPhotos={relevantPhotos}
         visiblePhotos={photos}
         initialFavoriteIds={favoriteIds}
         demoMode={DEMO_MODE}
+        initialTab={initialTab}
+        initialManageId={initialManageId}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toggleFavoriteIds } from "@/lib/favorites";
 import { filterPhotos } from "@/lib/photo-filter";
@@ -48,6 +49,7 @@ type Props = {
   initialSelectedId?: string | null;
   initialFavoriteIds?: string[];
   demoMode?: boolean;
+  viewerId?: string;
 };
 
 export function PhotoWall({
@@ -57,6 +59,7 @@ export function PhotoWall({
   initialSelectedId = null,
   initialFavoriteIds = [],
   demoMode = false,
+  viewerId,
 }: Props) {
   const copy = wallCopy[variant];
   const searchId = variant === "video" ? "video-search" : "photo-search";
@@ -70,13 +73,14 @@ export function PhotoWall({
   );
   const [favorites, setFavorites] = useState<string[]>(initialFavoriteIds);
   const [commentsByPhoto, setCommentsByPhoto] = useState<Record<string, PhotoComment[]>>({});
-  const [commentText, setCommentText] = useState("");
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [commentError, setCommentError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const touchStart = useRef<number | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const modalCloseRef = useRef<HTMLButtonElement>(null);
   const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const commentLoadVersion = useRef<Record<string, number>>({});
   const filtered = useMemo(
     () => filterPhotos(photos, query, tag),
     [photos, query, tag],
@@ -86,6 +90,7 @@ export function PhotoWall({
   const selected = selectedIndex >= 0 ? filtered[selectedIndex] : null;
   const modalOpen = Boolean(selected);
   const comments = selectedId ? (commentsByPhoto[selectedId] ?? []) : [];
+  const commentText = selectedId ? (commentDrafts[selectedId] ?? "") : "";
 
   useEffect(() => {
     if (!demoMode) return;
@@ -106,18 +111,22 @@ export function PhotoWall({
   useEffect(() => {
     if (!selectedId) return;
     const controller = new AbortController();
+    const loadVersion = (commentLoadVersion.current[selectedId] ?? 0) + 1;
+    commentLoadVersion.current[selectedId] = loadVersion;
     fetch(`/api/photos/${selectedId}/comments`, { signal: controller.signal })
       .then((response) =>
         response.ok ? response.json() : ({ comments: [] } as const),
       )
-      .then((data) =>
+      .then((data) => {
+        if (commentLoadVersion.current[selectedId] !== loadVersion) return;
         setCommentsByPhoto((current) => ({
           ...current,
           [selectedId]: data.comments ?? [],
-        })),
-      )
+        }));
+      })
       .catch((reason) => {
         if (reason instanceof DOMException && reason.name === "AbortError") return;
+        if (commentLoadVersion.current[selectedId] !== loadVersion) return;
         setCommentsByPhoto((current) => ({
           ...current,
           [selectedId]: [],
@@ -241,7 +250,13 @@ export function PhotoWall({
         ...current,
         [photoId]: [...(current[photoId] ?? []), result.comment],
       }));
-      setCommentText("");
+      commentLoadVersion.current[photoId] =
+        (commentLoadVersion.current[photoId] ?? 0) + 1;
+      setCommentDrafts((current) =>
+        (current[photoId] ?? "").trim() === content
+          ? { ...current, [photoId]: "" }
+          : current,
+      );
     } catch {
       setCommentError("留言失败，请检查网络后重试。");
     } finally {
@@ -261,6 +276,11 @@ export function PhotoWall({
       {selected.downloadAllowed && (
         <a href={`/api/photos/${selected.id}/download`}>{copy.download}</a>
       )}
+      {selected.uploadedBy === viewerId ? (
+        <Link href={`/profile?tab=uploads&manage=${selected.id}`}>
+          管理我的上传
+        </Link>
+      ) : null}
     </>
   ) : null;
 
@@ -328,7 +348,8 @@ export function PhotoWall({
                     fill
                     sizes="(max-width: 520px) 48vw, (max-width: 900px) 31vw, 20vw"
                     unoptimized
-                    loading="lazy"
+                    loading={index === 0 ? "eager" : "lazy"}
+                    fetchPriority={index === 0 ? "high" : undefined}
                     suppressHydrationWarning
                   />
                   <span className="wall-index">
@@ -518,7 +539,13 @@ export function PhotoWall({
                   <input
                     id="comment-text"
                     value={commentText}
-                    onChange={(event) => setCommentText(event.target.value)}
+                    onChange={(event) => {
+                      if (!selectedId) return;
+                      setCommentDrafts((current) => ({
+                        ...current,
+                        [selectedId]: event.target.value,
+                      }));
+                    }}
                     maxLength={300}
                     placeholder="我记得……"
                   />

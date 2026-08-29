@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { OwnedMediaManager } from "@/components/owned-media-manager";
+import type { UploadMemberOption } from "@/lib/photos";
 import type { Photo, Profile } from "@/types/domain";
 
 type Preferences = Pick<
@@ -16,12 +18,14 @@ type Preferences = Pick<
 
 type Props = {
   user: Profile;
-  ownPhotoCount: number;
-  pendingTagRequests: Photo[];
+  ownedMedia: Photo[];
+  members: UploadMemberOption[];
   relevantPhotos: Photo[];
   visiblePhotos: Photo[];
   initialFavoriteIds: string[];
   demoMode: boolean;
+  initialTab?: ProfileTab;
+  initialManageId?: string | null;
 };
 
 type ProfileTab = "about" | "favorites" | "uploads" | "privacy";
@@ -30,17 +34,19 @@ const privacyReasons = ["不想公开", "不喜欢这张照片", "涉及个人�
 
 export function ProfileSettings({
   user,
-  ownPhotoCount,
-  pendingTagRequests,
+  ownedMedia: initialOwnedMedia,
+  members,
   relevantPhotos,
   visiblePhotos,
   initialFavoriteIds,
   demoMode,
+  initialTab = "about",
+  initialManageId = null,
 }: Props) {
-  const [requests, setRequests] = useState(pendingTagRequests);
+  const [ownedMedia, setOwnedMedia] = useState(initialOwnedMedia);
   const [favoriteIds, setFavoriteIds] = useState(initialFavoriteIds);
   const [saved, setSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<ProfileTab>("about");
+  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
   const [privacyReason, setPrivacyReason] = useState(privacyReasons[0]);
   const [preferences, setPreferences] = useState<Preferences>({
     showRealName: user.showRealName,
@@ -49,7 +55,8 @@ export function ProfileSettings({
     soundEnabled: false,
   });
   const [privacyForm, setPrivacyForm] = useState({
-    photoId: relevantPhotos[0]?.id ?? "",
+    photoId:
+      relevantPhotos.find((photo) => photo.uploadedBy !== user.id)?.id ?? "",
     kind: "hide" as "hide" | "delete",
     message: "",
   });
@@ -94,19 +101,6 @@ export function ProfileSettings({
     if (response.ok) setSaved(true);
   }
 
-  async function decideConsent(
-    photoId: string,
-    consentStatus: "approved" | "rejected",
-  ) {
-    const response = await fetch(`/api/photos/${photoId}/consent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ consentStatus }),
-    });
-    if (response.ok)
-      setRequests((current) => current.filter((item) => item.id !== photoId));
-  }
-
   async function submitPrivacyRequest(event: React.FormEvent) {
     event.preventDefault();
     if (!privacyForm.photoId) return;
@@ -115,19 +109,24 @@ export function ProfileSettings({
     const combinedMessage = privacyForm.message.trim()
       ? `${privacyReason}：${privacyForm.message.trim()}`
       : privacyReason;
-    const response = await fetch("/api/privacy-requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...privacyForm, message: combinedMessage }),
-    });
-    const result = await response.json().catch(() => ({}));
-    if (response.ok) {
+    try {
+      const response = await fetch("/api/privacy-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...privacyForm, message: combinedMessage }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setPrivacyState("error");
+        setPrivacyMessage(result.error || "提交失败，请稍后再试。");
+        return;
+      }
       setPrivacyState("sent");
-      setPrivacyMessage("申请已交给管理员；接受后照片会先从相册隐藏。");
+      setPrivacyMessage("申请已交给管理员；接受后内容会先从相册隐藏。");
       setPrivacyForm((current) => ({ ...current, message: "" }));
-    } else {
+    } catch {
       setPrivacyState("error");
-      setPrivacyMessage(result.error || "提交失败，请稍后再试。");
+      setPrivacyMessage("网络连接失败，请稍后再试。");
     }
   }
 
@@ -154,27 +153,51 @@ export function ProfileSettings({
     },
   ];
 
-  const favoritePhotos = visiblePhotos.filter((photo) =>
+  const ownedById = useMemo(
+    () => new Map(ownedMedia.map((photo) => [photo.id, photo])),
+    [ownedMedia],
+  );
+  const currentVisiblePhotos = useMemo(
+    () =>
+      visiblePhotos.flatMap((photo) => {
+        if (photo.uploadedBy !== user.id) return [photo];
+        const owned = ownedById.get(photo.id);
+        return owned?.reviewStatus === "published" ? [owned] : [];
+      }),
+    [ownedById, user.id, visiblePhotos],
+  );
+  const currentRelevantPhotos = useMemo(
+    () =>
+      relevantPhotos.flatMap((photo) => {
+        if (photo.uploadedBy !== user.id) return [photo];
+        const owned = ownedById.get(photo.id);
+        return owned?.reviewStatus === "published" ? [owned] : [];
+      }),
+    [ownedById, relevantPhotos, user.id],
+  );
+  const requestablePhotos = currentRelevantPhotos.filter(
+    (photo) => photo.uploadedBy !== user.id,
+  );
+  const favoritePhotos = currentVisiblePhotos.filter((photo) =>
     favoriteIds.includes(photo.id),
   );
-  const uploadedPhotos = visiblePhotos.filter(
-    (photo) => photo.uploadedBy === user.id,
-  );
   const selectedPrivacyPhoto =
-    relevantPhotos.find((photo) => photo.id === privacyForm.photoId) ??
-    relevantPhotos[0] ??
+    requestablePhotos.find((photo) => photo.id === privacyForm.photoId) ??
+    requestablePhotos[0] ??
     null;
   const displayedPhotos = useMemo(() => {
     if (activeTab === "favorites") return favoritePhotos;
-    if (activeTab === "uploads") return uploadedPhotos;
-    return relevantPhotos;
-  }, [activeTab, favoritePhotos, relevantPhotos, uploadedPhotos]);
+    if (activeTab === "uploads") return [];
+    return currentRelevantPhotos;
+  }, [activeTab, currentRelevantPhotos, favoritePhotos]);
+  const displayedCount =
+    activeTab === "uploads" ? ownedMedia.length : displayedPhotos.length;
 
   const tabCopy = {
     about: ["关于我的照片", "这些照片记录了我在校园里的时光"],
     favorites: ["我的收藏", "只有你仍有权限查看的照片会出现在这里"],
-    uploads: ["我的上传", "你提交并仍有权限查看的照片"],
-    privacy: ["隐私相关照片", "选择右侧照片即可申请隐藏或删除"],
+    uploads: ["我的上传", "照片和视频都由你直接编辑、隐藏或永久删除"],
+    privacy: ["与我相关的内容", "对别人上传且与你相关的内容申请处理"],
   }[activeTab];
 
   return (
@@ -185,7 +208,7 @@ export function ProfileSettings({
           <p>{user.role === "admin" ? "班级相册管理员" : "班级成员"}</p>
           <h1>{user.displayName}<span aria-hidden="true">⌁</span></h1>
           <small>
-            出现在 {relevantPhotos.length} 张照片里 · 收藏 {favoritePhotos.length} 张 · 留下 {ownPhotoCount} 段回忆
+            出现在 {currentRelevantPhotos.length} 份回忆里 · 收藏 {favoritePhotos.length} 份 · 上传 {ownedMedia.length} 份
           </small>
         </div>
         <i aria-hidden="true">⌁</i>
@@ -209,20 +232,32 @@ export function ProfileSettings({
         ))}
       </nav>
 
-      <div className={`profile-reference-layout${activeTab === "privacy" ? " privacy-active" : ""}`}>
+      <div
+        className={`profile-reference-layout${activeTab === "privacy" ? " privacy-active" : ""}${activeTab === "uploads" ? " uploads-active" : ""}`}
+      >
         <main className="profile-photo-library">
           <header>
             <div>
               <h2>{tabCopy[0]}<span aria-hidden="true">⌁</span></h2>
               <p>{tabCopy[1]}</p>
             </div>
-            <span>{displayedPhotos.length} 张</span>
+            <span>{displayedCount} 份</span>
           </header>
 
-          {displayedPhotos.length > 0 ? (
+          {activeTab === "uploads" ? (
+            <OwnedMediaManager
+              media={ownedMedia}
+              members={members}
+              initialManageId={initialManageId}
+              onChange={setOwnedMedia}
+            />
+          ) : displayedPhotos.length > 0 ? (
             <div className="profile-photo-grid">
               {displayedPhotos.map((photo, index) => (
-                <Link href={`/photos?open=${photo.id}`} key={photo.id}>
+                <Link
+                  href={`${photo.mediaType === "video" ? "/videos" : "/photos"}?open=${photo.id}`}
+                  key={photo.id}
+                >
                   <div>
                     <Image
                       src={photo.thumbnailUrl}
@@ -243,37 +278,11 @@ export function ProfileSettings({
           ) : (
             <div className="profile-photo-empty">
               <span aria-hidden="true">⌁</span>
-              <b>这里暂时还没有照片</b>
-              <p>去照片墙看看，或上传一段你记得的时光。</p>
+              <b>这里暂时还没有内容</b>
+              <p>去媒体墙看看，或上传一段你记得的时光。</p>
             </div>
           )}
 
-          {requests.length > 0 && (
-            <section className="pending-consents profile-consent-card">
-              <header>
-                <b>{requests.length} 张照片等待你确认</b>
-                <span>确认前，它们不会公开展示。</span>
-              </header>
-              {requests.map((photo, index) => (
-                <article key={photo.id}>
-                  <div>
-                    <Image
-                      src={photo.thumbnailUrl}
-                      alt={photo.title}
-                      fill
-                      sizes="72px"
-                      unoptimized
-                      loading={index === 0 ? "eager" : "lazy"}
-                      suppressHydrationWarning
-                    />
-                  </div>
-                  <p><b>{photo.title}</b><span>{photo.location || "地点未填写"}</span></p>
-                  <button type="button" onClick={() => decideConsent(photo.id, "approved")}>同意展示</button>
-                  <button type="button" onClick={() => decideConsent(photo.id, "rejected")}>拒绝</button>
-                </article>
-              ))}
-            </section>
-          )}
         </main>
 
         <aside className="profile-reference-aside">
@@ -284,18 +293,18 @@ export function ProfileSettings({
           >
             <div className="privacy-request-heading">
               <p>
-                <b>申请隐藏或删除照片</b>
+                <b>申请处理他人上传的内容</b>
                 <span>只有你和管理员能看到申请内容</span>
               </p>
               <small>▢</small>
             </div>
-            {relevantPhotos.length > 0 ? (
+            {requestablePhotos.length > 0 ? (
               <>
                 {selectedPrivacyPhoto && (
                   <div className="privacy-photo-preview" key={selectedPrivacyPhoto.id}>
                     <Link
-                      href={`/photos?open=${selectedPrivacyPhoto.id}`}
-                      aria-label={`查看大图：${selectedPrivacyPhoto.title}`}
+                      href={`${selectedPrivacyPhoto.mediaType === "video" ? "/videos" : "/photos"}?open=${selectedPrivacyPhoto.id}`}
+                      aria-label={`查看内容：${selectedPrivacyPhoto.title}`}
                     >
                       <Image
                         src={selectedPrivacyPhoto.previewUrl}
@@ -305,7 +314,7 @@ export function ProfileSettings({
                         unoptimized
                         suppressHydrationWarning
                       />
-                      <span>预览大图</span>
+                      <span>预览内容</span>
                     </Link>
                     <div>
                       <b>{selectedPrivacyPhoto.title}</b>
@@ -315,14 +324,14 @@ export function ProfileSettings({
                 )}
 
                 <label className="profile-photo-select">
-                  <span>选择照片</span>
+                  <span>选择照片或视频</span>
                   <select
                     value={privacyForm.photoId}
                     onChange={(event) =>
                       setPrivacyForm({ ...privacyForm, photoId: event.target.value })
                     }
                   >
-                    {relevantPhotos.map((photo) => (
+                    {requestablePhotos.map((photo) => (
                       <option key={photo.id} value={photo.id}>{photo.title}</option>
                     ))}
                   </select>
@@ -385,7 +394,9 @@ export function ProfileSettings({
                 )}
               </>
             ) : (
-              <p className="privacy-empty">目前没有可申请处理的照片。</p>
+              <p className="privacy-empty">
+                目前没有别人上传且与你相关的内容。
+              </p>
             )}
           </form>
 

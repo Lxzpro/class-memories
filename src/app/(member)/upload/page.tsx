@@ -17,7 +17,7 @@ export default async function UploadPage() {
         <h1>
           把你记得的，也放进来<span aria-hidden="true">⌁</span>
         </h1>
-        <small>照片或视频上传后由管理员确认，再加入班级相册</small>
+        <small>照片或视频上传后立即发布，并可在“我的上传”随时管理</small>
       </header>
       <MemberUploadStudio demoMode={DEMO_MODE} members={members} />
     </div>

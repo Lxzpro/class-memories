@@ -29,6 +29,7 @@ export default async function VideosPage({ searchParams }: VideosPageProps) {
         variant="video"
         initialFavoriteIds={favoriteIds}
         demoMode={DEMO_MODE}
+        viewerId={user.id}
         initialSelectedId={typeof open === "string" ? open : null}
       />
     </div>

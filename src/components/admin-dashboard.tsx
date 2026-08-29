@@ -566,7 +566,7 @@ export function AdminDashboard({
               <span>照片</span>
               <b>{photos.length}</b>
               <small>
-                {publishedCount} 张已发布 · {draftCount} 张待审核
+                {publishedCount} 张已发布 · {draftCount} 份未发布草稿
               </small>
             </article>
             <article>
@@ -854,7 +854,7 @@ export function AdminDashboard({
                   </span>
                   <small className={`admin-photo-status ${photo.reviewStatus}`}>
                     {photo.reviewStatus === "draft"
-                      ? "等待管理员审核"
+                      ? "未发布草稿"
                       : photo.reviewStatus === "published"
                         ? "已发布"
                         : "已隐藏"}
@@ -899,7 +899,7 @@ export function AdminDashboard({
                   }
                 >
                   {photo.reviewStatus === "draft"
-                    ? "审核通过"
+                    ? "立即发布"
                     : photo.reviewStatus === "hidden"
                       ? "恢复"
                       : "隐藏"}

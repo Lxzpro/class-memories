@@ -313,7 +313,7 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
       }
 
       updateItem(item.id, { status: "submitted", progress: 100 });
-      setNotice(saved.message || "照片或视频已经提交审核。");
+      setNotice(saved.message || "照片或视频已经发布。");
       return true;
     } catch (reason) {
       updateItem(item.id, {
@@ -355,8 +355,8 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
     if (submitted > 0) {
       setNotice(
         demoMode
-          ? `已模拟提交 ${submitted} 份媒体；演示模式不会写入 R2 或数据库。`
-          : `已提交 ${submitted} 份照片或视频，管理员审核通过后会出现在相册中。`,
+          ? `已模拟发布 ${submitted} 份媒体；演示模式不会写入 R2 或数据库。`
+          : `已发布 ${submitted} 份照片或视频，可以立即在相册中查看。`,
       );
     }
   }
@@ -509,7 +509,7 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
                       <small>{formatFileSize(item.file.size)}</small>
                     </div>
                   ) : null}
-                  {item.status === "submitted" ? <b>已提交审核</b> : null}
+                  {item.status === "submitted" ? <b>已发布</b> : null}
                 </div>
                 <div className="member-upload-fields">
                   <label>
@@ -617,7 +617,7 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
                       : item.status === "uploading"
                         ? `上传中 ${item.progress}%`
                         : item.status === "submitted"
-                          ? "等待管理员审核"
+                          ? "已发布到班级相册"
                           : item.error || "预览已就绪，填写完成后即可提交"}
                   </p>
                   {item.status === "error" ? (
@@ -650,7 +650,7 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
         <section className="upload-privacy-card">
           <header>
             <h3>隐私设置</h3>
-            <p>选择本次内容审核通过后的可见范围</p>
+            <p>选择本次内容发布后的可见范围</p>
           </header>
           <label className={batchVisibility === "class" ? "active" : ""}>
             <input
@@ -664,7 +664,7 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
             </span>
             <b>
               全班可见
-              <small>审核通过后，班级所有同学均可查看</small>
+              <small>发布后，班级所有同学均可查看</small>
             </b>
           </label>
           <label className={batchVisibility === "private" ? "active" : ""}>
@@ -689,7 +689,7 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
           <ul>
             <li>上传内容需积极、真实、友善</li>
             <li>不要包含住址、证件等私密信息</li>
-            <li>审核通常在 1–3 个工作日内完成</li>
+            <li>发布后可在“我的上传”随时修改或删除</li>
           </ul>
         </section>
 
@@ -711,7 +711,7 @@ export function MemberUploadStudio({ demoMode, members }: { demoMode: boolean; m
             <li>
               <span>3</span>
               <b>
-                等待审核<small>通过后自动加入班级相册</small>
+                立即发布<small>上传完成后自动加入班级相册</small>
               </b>
             </li>
           </ol>

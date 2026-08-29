@@ -56,7 +56,16 @@ export async function getUploadMemberOptions(): Promise<UploadMemberOption[]> {
 function applyDemoDownloadConsent(user: Profile, photos: Photo[]): Photo[] {
   if (user.role === "admin" || photos.length === 0) return photos;
   const profiles = new Map(MOCK_PROFILES.map((profile) => [profile.id, profile]));
-  return photos.map((photo) => ({ ...photo, downloadAllowed: photo.downloadAllowed && photo.people.every((person) => profiles.get(person.id)?.allowOriginalDownload !== false) }));
+  return photos.map((photo) => ({
+    ...photo,
+    downloadAllowed:
+      photo.uploadedBy === user.id ||
+      (photo.downloadAllowed &&
+        photo.people.every(
+          (person) =>
+            profiles.get(person.id)?.allowOriginalDownload !== false,
+        )),
+  }));
 }
 
 async function getBlockedDownloadPhotoIds(user: Profile, photoIds?: string[]): Promise<Set<string>> {
@@ -73,7 +82,12 @@ async function getBlockedDownloadPhotoIds(user: Profile, photoIds?: string[]): P
 
 function applyDownloadConsent(user: Profile, photos: Photo[], blockedPhotoIds: Set<string>): Photo[] {
   if (user.role === "admin" || photos.length === 0) return photos;
-  return photos.map((photo) => ({ ...photo, downloadAllowed: photo.downloadAllowed && !blockedPhotoIds.has(photo.id) }));
+  return photos.map((photo) => ({
+    ...photo,
+    downloadAllowed:
+      photo.uploadedBy === user.id ||
+      (photo.downloadAllowed && !blockedPhotoIds.has(photo.id)),
+  }));
 }
 
 async function getVisibleMedia(user: Profile, mediaType?: "video"): Promise<Photo[]> {
@@ -103,6 +117,44 @@ export function getVisiblePhotos(user: Profile): Promise<Photo[]> {
 
 export function getVisibleVideos(user: Profile): Promise<Photo[]> {
   return getVisibleMedia(user, "video");
+}
+
+export async function getOwnedMedia(user: Profile): Promise<Photo[]> {
+  if (DEMO_MODE) {
+    return MOCK_PHOTOS.filter(
+      (photo) =>
+        photo.uploadedBy === user.id && photo.reviewStatus !== "deleted",
+    );
+  }
+
+  const admin = await createSupabaseAdminClient();
+  const [{ data, error }, { data: profiles }] = await Promise.all([
+    admin
+      .from("photos")
+      .select(
+        "*, photo_people(user_id, consent_status), photo_access(user_id), photo_tags(tags(name))",
+      )
+      .eq("uploaded_by", user.id)
+      .neq("review_status", "deleted")
+      .order("created_at", { ascending: false }),
+    admin
+      .from("profiles")
+      .select("id,display_name,show_real_name")
+      .eq("status", "approved"),
+  ]);
+  if (error) throw new Error("无法读取你上传的媒体");
+
+  const names = new Map(
+    (profiles ?? []).map((profile) => [
+      String(profile.id),
+      profile.show_real_name
+        ? String(profile.display_name)
+        : "匿名同学",
+    ]),
+  );
+  return Promise.all(
+    (data ?? []).map((row) => signPhoto(mapPhoto(row as RelatedRow, names))),
+  );
 }
 
 export async function getVisiblePhoto(user: Profile, id: string): Promise<Photo | null> {
@@ -148,12 +200,4 @@ export async function getPhotoComments(user: Profile, photoId: string): Promise<
     authorName: names.get(String(row.user_id)) ?? "班级成员",
     content: String(row.content), status: "visible", createdAt: String(row.created_at),
   }));
-}
-
-export async function getPendingTagRequests(user: Profile): Promise<Photo[]> {
-  if (DEMO_MODE) return MOCK_PHOTOS.filter((photo) => photo.people.some((person) => person.id === user.id && person.consentStatus === "pending"));
-  const admin = await createSupabaseAdminClient();
-  const { data } = await admin.from("photo_people").select("photos(*)").eq("user_id", user.id).eq("consent_status", "pending");
-  const rows = (data ?? []).map((item) => item.photos).filter(Boolean) as unknown as RelatedRow[];
-  return Promise.all(rows.map((row) => signPhoto(mapPhoto(row))));
 }

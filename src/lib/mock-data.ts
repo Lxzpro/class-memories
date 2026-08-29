@@ -55,20 +55,18 @@ const memorySeeds = [
   ["最后一次大扫除", "桌椅搬空以后，教室突然变得很大。", "教室", ["毕业", "教室"], 3, 4],
   ["站成一排的我们", "有人闭眼，有人看错镜头，但一个都不少。", "校园广场", ["合照", "毕业"], 5, 3],
   ["记不起哪一天", "一眼就认得，那是当时的我们。", "未知地点", ["日常", "珍贵"], 4, 5],
-  ["只给照片里的人", "这张回忆需要当事人同意以后才会出现。", "教室", ["同桌", "私密"], 3, 4],
+  ["只给照片里的人", "这张回忆只向照片里标记的同学展示。", "教室", ["同桌", "私密"], 3, 4],
   ["指定给你的留言", "有些照片，只想和几个老朋友一起看。", "校门", ["朋友", "私密"], 4, 3],
   ["自己的收藏页", "暂时放在这里，等准备好了再分享。", "未知地点", ["私人"], 1, 1],
-  ["等待确认的瞬间", "被标记的同学确认后，照片才会进入全班相册。", "操场", ["待确认"], 5, 4],
+  ["操场边的风", "镜头晃了一下，还是留下了那天奔跑的样子。", "操场", ["运动会", "朋友"], 5, 4],
 ] as const;
 
 export const MOCK_PHOTOS: Photo[] = memorySeeds.map((seed, index) => {
   const [title, description, location, tags, widthRatio, heightRatio] = seed;
   const number = index + 1;
   const visibility = number === 19 ? "tagged_people" : number === 20 ? "selected" : number === 21 ? "private" : "class";
-  const reviewStatus = number === 22 ? "draft" : "published";
-  const people = number === 22
-    ? [{ id: "user-member", name: "夏宁", consentStatus: "pending" as const }]
-    : number % 3 === 0
+  const reviewStatus = "published";
+  const people = number % 3 === 0
     ? [{ id: "user-member", name: "夏宁", consentStatus: "approved" as const }, { id: "user-lin", name: "林澈", consentStatus: "approved" as const }]
     : [{ id: "user-zhou", name: "周予安", consentStatus: "approved" as const }];
 

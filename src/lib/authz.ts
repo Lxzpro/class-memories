@@ -27,7 +27,11 @@ export function canViewPhoto(user: Profile | null, photo: Photo): boolean {
 
 export function canDownloadOriginal(user: Profile | null, photo: Photo): boolean {
   if (!canViewPhoto(user, photo)) return false;
-  return user?.role === "admin" || photo.downloadAllowed;
+  return (
+    user?.role === "admin" ||
+    photo.uploadedBy === user?.id ||
+    photo.downloadAllowed
+  );
 }
 
 export function filterVisiblePhotos(user: Profile | null, photos: Photo[]): Photo[] {

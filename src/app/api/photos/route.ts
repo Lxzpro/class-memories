@@ -33,6 +33,26 @@ export async function POST(request: Request) {
   const photo = parsed.data;
   if (!DEMO_MODE) {
     const supabase = await createSupabaseAdminClient();
+    const storage = getStorageAdapter();
+    const cleanupFailedUpload = async () => {
+      const { data: removed } = await supabase
+        .from("photos")
+        .delete()
+        .eq("id", photo.id)
+        .eq("uploaded_by", user.id)
+        .eq("review_status", "draft")
+        .is("deleted_at", null)
+        .select("id")
+        .maybeSingle();
+      if (!removed) return;
+      await storage
+        .deleteObjects([
+          photo.originalKey,
+          photo.previewKey,
+          photo.thumbnailKey,
+        ])
+        .catch(() => undefined);
+    };
     const { error } = await supabase.from("photos").insert({
       id: photo.id,
       title: photo.title,
@@ -50,26 +70,31 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      await getStorageAdapter()
-        .deleteObjects([
-          photo.originalKey,
-          photo.previewKey,
-          photo.thumbnailKey,
-        ])
-        .catch(() => undefined);
       return Response.json(
-        { error: "媒体资料保存失败，请重新上传。" },
-        { status: 500 },
+        {
+          error:
+            error.code === "23505"
+              ? "这份媒体已经发布，请不要重复提交。"
+              : "媒体资料保存失败，请重新上传。",
+        },
+        { status: error.code === "23505" ? 409 : 500 },
       );
     }
 
     if (photo.peopleIds.length > 0) {
       const uniquePeopleIds = [...new Set(photo.peopleIds)];
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id")
         .in("id", uniquePeopleIds)
         .eq("status", "approved");
+      if (profilesError) {
+        await cleanupFailedUpload();
+        return Response.json(
+          { error: "人物信息读取失败，请重新上传。" },
+          { status: 500 },
+        );
+      }
       const people = (profiles ?? []).map((profile) => ({
         photo_id: photo.id,
         user_id: profile.id,
@@ -78,23 +103,50 @@ export async function POST(request: Request) {
       if (people.length > 0) {
         const { error: peopleError } = await supabase.from("photo_people").insert(people);
         if (peopleError) {
-          await supabase.from("photos").delete().eq("id", photo.id);
-          await getStorageAdapter().deleteObjects([photo.originalKey, photo.previewKey, photo.thumbnailKey]).catch(() => undefined);
+          await cleanupFailedUpload();
           return Response.json({ error: "人物关联保存失败，请重新上传。" }, { status: 500 });
         }
       }
     }
 
     for (const name of photo.tags) {
-      const { data: tag } = await supabase
+      const { data: tag, error: tagError } = await supabase
         .from("tags")
         .upsert({ name }, { onConflict: "name" })
         .select("id")
         .single();
-      if (tag)
-        await supabase
-          .from("photo_tags")
-          .upsert({ photo_id: photo.id, tag_id: tag.id });
+      if (tagError || !tag) {
+        await cleanupFailedUpload();
+        return Response.json({ error: "标签保存失败，请重新上传。" }, { status: 500 });
+      }
+      const { error: photoTagError } = await supabase
+        .from("photo_tags")
+        .upsert({ photo_id: photo.id, tag_id: tag.id });
+      if (photoTagError) {
+        await cleanupFailedUpload();
+        return Response.json({ error: "标签关联保存失败，请重新上传。" }, { status: 500 });
+      }
+    }
+
+    const { data: publishedPhoto, error: publishError } = await supabase
+      .from("photos")
+      .update({ review_status: "published" })
+      .eq("id", photo.id)
+      .eq("uploaded_by", user.id)
+      .eq("review_status", "draft")
+      .is("deleted_at", null)
+      .select("id")
+      .maybeSingle();
+    if (publishError || !publishedPhoto) {
+      await cleanupFailedUpload();
+      return Response.json(
+        {
+          error: publishError
+            ? "媒体发布失败，请重新上传。"
+            : "媒体状态已发生变化，本次发布已取消。",
+        },
+        { status: publishError ? 500 : 409 },
+      );
     }
   }
 
@@ -103,12 +155,12 @@ export async function POST(request: Request) {
       photo: {
         id: photo.id,
         title: photo.title,
-        reviewStatus: "draft",
+        reviewStatus: "published",
         createdAt: new Date().toISOString(),
       },
       message: DEMO_MODE
-        ? "演示模式已模拟提交，媒体不会写入云端。"
-        : `${photo.mediaType === "video" ? "视频" : "照片"}已提交，管理员审核后会出现在相册中。`,
+        ? "演示模式已模拟发布，媒体不会写入云端。"
+        : `${photo.mediaType === "video" ? "视频" : "照片"}已发布，可以立即在班级相册中查看。`,
     },
     { status: 201 },
   );

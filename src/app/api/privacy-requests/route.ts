@@ -16,7 +16,13 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "申请内容不完整。" }, { status: 400 });
   const photo = await getVisiblePhoto(user, parsed.data.photoId);
-  if (!photo) return Response.json({ error: "照片不存在，或你没有查看权限。" }, { status: 404 });
+  if (!photo) return Response.json({ error: "内容不存在，或你没有查看权限。" }, { status: 404 });
+  if (photo.uploadedBy === user.id) {
+    return Response.json(
+      { error: "这是你上传的内容，请在“我的上传”中直接管理。" },
+      { status: 409 },
+    );
+  }
 
   if (DEMO_MODE) {
     return Response.json({ request: { id: crypto.randomUUID(), ...parsed.data, status: "pending", createdAt: new Date().toISOString() } }, { status: 201 });
