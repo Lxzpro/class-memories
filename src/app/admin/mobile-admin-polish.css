@@ -284,13 +284,12 @@
     border-radius: 18px;
   }
 
-  .admin-shell :where(.overview-panel, .admin-panel, .invite-creator, .invite-list) {
+  .admin-shell :where(.overview-panel, .admin-panel) {
     padding: 17px;
     border-radius: 19px;
   }
 
   .admin-shell .admin-overview-grid,
-  .admin-shell .invite-layout,
   .admin-shell .admin-review-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 12px;
@@ -302,9 +301,7 @@
       .reference-review-actions button,
       .privacy-overview-actions button,
       .pending-photo-actions button,
-      .danger-member,
-      .invite-creator > button,
-      .invite-revoke-button
+      .danger-member
     ) {
     min-height: 44px;
   }
@@ -425,71 +422,6 @@
     flex: 0 0 auto;
     width: 18px;
     height: 18px;
-  }
-
-  .admin-shell .invite-layout {
-    gap: 12px;
-  }
-
-  .admin-shell .invite-creator {
-    padding: 18px;
-  }
-
-  .admin-shell .invite-creator :where(input, button) {
-    min-height: 46px;
-    font-size: 16px;
-  }
-
-  .admin-shell .invite-list {
-    padding: 10px;
-  }
-
-  .admin-shell .invite-list article {
-    min-height: 0;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-    padding: 13px;
-    border-radius: 16px;
-  }
-
-  .admin-shell .invite-list article > div:first-child {
-    min-width: 0;
-  }
-
-  .admin-shell .invite-list article > p {
-    align-self: start;
-    justify-self: end;
-    margin: 0;
-  }
-
-  .admin-shell .invite-list article > small {
-    align-self: center;
-    justify-self: start;
-  }
-
-  .admin-shell .invite-list article > .invite-revoke-button {
-    align-self: center;
-    justify-self: end;
-  }
-
-  .admin-shell .invite-code-panel {
-    min-width: 0;
-    grid-column: 1 / -1;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
-    padding: 13px;
-  }
-
-  .admin-shell .invite-code-actions {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .admin-shell .invite-code-actions button:only-child {
-    grid-column: 1 / -1;
   }
 
   .admin-shell .admin-logs article {

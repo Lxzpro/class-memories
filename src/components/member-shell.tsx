@@ -78,7 +78,7 @@ export function MemberShell({
       <header className="member-topbar">
         <div className="member-archive-context">
           <b>OUR CLASS ARCHIVE</b>
-          <span aria-label="仅受邀同学可见" title="仅受邀同学可见">
+          <span aria-label="仅审核通过的同学可见" title="仅审核通过的同学可见">
             ▢
           </span>
         </div>

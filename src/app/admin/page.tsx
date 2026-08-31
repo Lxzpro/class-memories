@@ -9,7 +9,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const admin = await requireAdmin(); const data = await getAdminDashboardData();
   await writeAdminLog(admin.id, "admin_dashboard_viewed", "admin", null);
   const requested = (await searchParams).tab;
-  const initialTab = typeof requested === "string" && ["overview", "upload", "photos", "members", "invites", "logs"].includes(requested) ? requested : "overview";
+  const initialTab = typeof requested === "string" && ["overview", "upload", "photos", "members", "logs"].includes(requested) ? requested : "overview";
   return (
     <AdminDashboard
       initialData={data}

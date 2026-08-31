@@ -196,8 +196,6 @@
 .admin-metric,
 .overview-panel,
 .admin-panel,
-.invite-creator,
-.invite-list,
 .admin-photo-list,
 .member-review-list,
 .privacy-review-list,
@@ -335,7 +333,6 @@
 .admin-photo-list,
 .member-review-list,
 .privacy-review-list,
-.invite-list,
 .admin-logs {
   overflow: hidden;
 }
@@ -343,7 +340,6 @@
 .admin-photo-list > *,
 .member-review-list > *,
 .privacy-review-list > *,
-.invite-list > *,
 .admin-logs > * {
   border-color: var(--admin-line);
 }
@@ -389,22 +385,11 @@
   font-size: 14px;
   font-weight: 700;
 }
-.invite-layout {
-  display: grid;
-  grid-template-columns: minmax(300px, 0.72fr) minmax(0, 1.28fr);
-  gap: 20px;
-}
-.invite-creator,
-.invite-list {
-  padding: 26px;
-}
-
 @media (max-width: 1100px) {
   .admin-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .admin-overview-grid,
-  .invite-layout {
+  .admin-overview-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -497,9 +482,7 @@
     font-size: 28px;
   }
   .overview-panel,
-  .admin-panel,
-  .invite-creator,
-  .invite-list {
+  .admin-panel {
     padding: 18px;
     border-radius: 19px;
   }

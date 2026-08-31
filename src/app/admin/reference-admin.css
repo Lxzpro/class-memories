@@ -748,8 +748,6 @@
 /* Keep the existing management tabs readable inside the new shell. */
 .admin-section:not(.admin-reference-overview) .section-title,
 .admin-section:not(.admin-reference-overview) .admin-panel,
-.admin-section:not(.admin-reference-overview) .invite-creator,
-.admin-section:not(.admin-reference-overview) .invite-list,
 .admin-section:not(.admin-reference-overview) .admin-photo-list,
 .admin-section:not(.admin-reference-overview) .member-review-list,
 .admin-section:not(.admin-reference-overview) .privacy-review-list,

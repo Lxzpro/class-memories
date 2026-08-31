@@ -15,7 +15,7 @@ export function AuthFrame({ eyebrow, title, description, children, footer }: { e
         {children}
         {footer && <div className="auth-footer">{footer}</div>}
       </section>
-      <p className="auth-privacy">⌁ 这是一个仅向受邀班级成员开放的私人空间</p>
+      <p className="auth-privacy">⌁ 这是一个仅向审核通过的班级成员开放的私人空间</p>
     </main>
   );
 }

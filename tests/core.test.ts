@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { canAccessMemberArea, canManageSite, canViewPhoto, filterVisiblePhotos } from "@/lib/authz";
 import { toggleFavoriteIds } from "@/lib/favorites";
 import { DEMO_MODE, getMissingProductionEnv, shouldUseDemoMode } from "@/lib/config";
-import { evaluateInvite } from "@/lib/invites";
 import {
   ALL_UPLOADERS,
   MY_UPLOADS,
@@ -11,14 +10,8 @@ import {
 } from "@/lib/photo-filter";
 import { chooseRandomId, pushRecentId } from "@/lib/random";
 import { checkRateLimit, resetRateLimit } from "@/lib/security/rate-limit";
-import {
-  decryptInviteCode,
-  encryptInviteCode,
-  hashInviteCode,
-  signToken,
-  verifyToken,
-} from "@/lib/security/tokens";
-import type { InviteCodeRecord, Photo, Profile } from "@/types/domain";
+import { signToken, verifyToken } from "@/lib/security/tokens";
+import type { Photo, Profile } from "@/types/domain";
 
 const member: Profile = { id: "member", email: "m@example.com", displayName: "同学", realName: "李同学", avatarKey: null, role: "member", status: "approved", showRealName: true, allowOriginalDownload: true, createdAt: "2026-01-01" };
 const admin: Profile = { ...member, id: "admin", role: "admin" };
@@ -50,37 +43,18 @@ describe("member and photo authorization", () => {
   });
 });
 
-describe("invite security", () => {
-  const invite: InviteCodeRecord = { id: "invite", codeHash: "hash", expiresAt: "2099-01-01T00:00:00.000Z", maxUses: 10, usedCount: 1, revokedAt: null, createdBy: "admin", createdAt: "2026-01-01" };
-  it("recognizes valid, expired, revoked and exhausted invites", () => {
-    expect(evaluateInvite(invite).valid).toBe(true);
-    expect(evaluateInvite({ ...invite, expiresAt: "2020-01-01" })).toEqual({ valid: false, reason: "expired" });
-    expect(evaluateInvite({ ...invite, revokedAt: "2026-01-02" })).toEqual({ valid: false, reason: "revoked" });
-    expect(evaluateInvite({ ...invite, usedCount: 10 })).toEqual({ valid: false, reason: "exhausted" });
-  });
-  it("hashes codes and rejects modified signed tokens", () => {
-    expect(hashInviteCode(" class-1 ")).toBe(hashInviteCode("CLASS-1"));
+describe("authentication security", () => {
+  it("rejects modified signed tokens", () => {
     const token = signToken({ userId: "member" }, Date.now() + 10000);
     expect(verifyToken<{ userId: string }>(token)?.userId).toBe("member");
     expect(verifyToken(`${token}x`)).toBeNull();
   });
-  it("encrypts recoverable admin copies without storing plaintext and rejects tampering", () => {
-    const first = encryptInviteCode(" class-1 ");
-    const second = encryptInviteCode("CLASS-1");
-    expect(first).not.toContain("CLASS-1");
-    expect(first).not.toBe(second);
-    expect(decryptInviteCode(first)).toBe("CLASS-1");
-    const parts = first.split(".");
-    parts[3] = (parts[3][0] === "A" ? "B" : "A") + parts[3].slice(1);
-    expect(decryptInviteCode(parts.join("."))).toBeNull();
-    expect(decryptInviteCode(null)).toBeNull();
-  });
-  it("limits repeated invite attempts", () => {
-    resetRateLimit("test");
-    expect(checkRateLimit("test", 2, 1000, 0).allowed).toBe(true);
-    expect(checkRateLimit("test", 2, 1000, 1).allowed).toBe(true);
-    expect(checkRateLimit("test", 2, 1000, 2).allowed).toBe(false);
-    resetRateLimit("test");
+  it("limits repeated authentication attempts", () => {
+    resetRateLimit("auth-test");
+    expect(checkRateLimit("auth-test", 2, 1000, 0).allowed).toBe(true);
+    expect(checkRateLimit("auth-test", 2, 1000, 1).allowed).toBe(true);
+    expect(checkRateLimit("auth-test", 2, 1000, 2).allowed).toBe(false);
+    resetRateLimit("auth-test");
   });
 });
 

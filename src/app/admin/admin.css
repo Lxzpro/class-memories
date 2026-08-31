@@ -396,7 +396,6 @@
 
 .admin-photo-list,
 .member-review-list,
-.invite-list,
 .admin-logs,
 .privacy-review-list {
   border-radius: 18px;
@@ -552,170 +551,6 @@
 
 .admin-empty {
   font-size: 13px;
-}
-
-.invite-layout {
-  grid-template-columns: minmax(300px, 380px) 1fr;
-  gap: 20px;
-}
-
-.invite-creator {
-  padding: 28px;
-  border-radius: 18px;
-}
-
-.invite-creator h3 {
-  font-size: 18px;
-}
-
-.invite-creator label {
-  margin-top: 16px;
-  font-size: 13px;
-}
-
-.invite-creator input {
-  height: 46px;
-  font-size: 14px;
-}
-
-.invite-creator > button {
-  min-height: 48px;
-  font-size: 14px;
-}
-
-.invite-creator > button:disabled,
-.admin-section .invite-code-actions button:disabled {
-  cursor: wait;
-  opacity: 0.62;
-}
-
-.invite-creator-note,
-.invite-inline-error {
-  margin: 12px 0 0;
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.invite-creator-note {
-  color: #718078;
-}
-
-.invite-inline-error {
-  color: #9a4f45;
-}
-
-.invite-list article {
-  min-height: 82px;
-  grid-template-columns: 1fr 90px 68px 52px;
-  padding: 12px 18px;
-}
-
-.invite-list b {
-  font-size: 14px;
-}
-
-.invite-list span,
-.invite-list p,
-.invite-list small,
-.invite-list button {
-  font-size: 11px;
-}
-
-.invite-code-panel {
-  min-width: 0;
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px 14px;
-  margin-top: 3px;
-  padding: 12px 14px;
-  border: 1px solid rgba(58, 80, 70, 0.1);
-  border-radius: 13px;
-  background: #f2f4ef;
-}
-
-.invite-code-value {
-  min-width: 0;
-}
-
-.invite-list .invite-code-value span {
-  margin: 0 0 5px;
-  color: #78857f;
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.invite-code-value code {
-  display: block;
-  overflow-wrap: anywhere;
-  color: #30473c;
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  font-size: 15px;
-  font-weight: 750;
-  letter-spacing: 0.04em;
-  line-height: 1.45;
-  user-select: all;
-}
-
-.invite-code-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.admin-section .invite-code-actions button {
-  min-width: 92px;
-  min-height: 44px;
-  padding: 0 13px;
-  border: 1px solid rgba(50, 75, 63, 0.16);
-  border-radius: 11px;
-  background: #fff;
-  color: #52685d;
-  cursor: pointer;
-  font-size: 12px;
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease,
-    color 0.2s ease;
-}
-
-.admin-section .invite-code-actions button:hover {
-  border-color: rgba(50, 75, 63, 0.3);
-  background: #e8eee8;
-  color: #30473c;
-}
-
-.admin-section .invite-code-actions .invite-copy-button {
-  border-color: #3d594b;
-  background: #3d594b;
-  color: #fff;
-}
-
-.admin-section .invite-code-actions .invite-copy-button:hover {
-  background: #2f483c;
-  color: #fff;
-}
-
-.invite-code-help,
-.invite-code-panel > .invite-inline-error {
-  grid-column: 1 / -1;
-  margin: 0;
-  line-height: 1.6;
-}
-
-.invite-list .invite-code-help {
-  color: #866a54;
-  font-size: 12px;
-}
-
-.invite-code-panel > .invite-inline-error {
-  font-size: 12px;
-}
-
-.admin-section .invite-revoke-button {
-  min-width: 44px;
-  min-height: 44px;
 }
 
 .admin-logs article {
@@ -934,28 +769,6 @@
     background: #fff;
   }
 
-  .invite-list article {
-    grid-template-columns: 1fr 64px 54px;
-  }
-
-  .invite-code-panel {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 13px;
-  }
-
-  .invite-code-actions {
-    width: 100%;
-  }
-
-  .admin-section .invite-code-actions button {
-    min-width: 0;
-    flex: 1;
-    font-size: 13px;
-  }
-
-  .invite-code-value code {
-    font-size: 16px;
-  }
 }
 
 @media (max-width: 460px) {

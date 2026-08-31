@@ -3,16 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { UserAvatar } from "@/components/user-avatar";
-import type {
-  AdminInviteView,
-  AdminLogView,
-} from "@/lib/admin-data";
+import type { AdminLogView } from "@/lib/admin-data";
 import type { Photo, PrivacyRequest, Profile } from "@/types/domain";
 
 type AdminOverviewProps = {
   photos: Photo[];
   members: Profile[];
-  invites: AdminInviteView[];
   logs: AdminLogView[];
   privacyRequests: PrivacyRequest[];
   onUpdatePhoto: (id: string, update: Partial<Photo>) => Promise<void>;
@@ -53,11 +49,10 @@ const metricIcons = {
       <path d="M3.5 20v-1.5A4.5 4.5 0 0 1 8 14h2a4.5 4.5 0 0 1 4.5 4.5V20M15 14.5a4 4 0 0 1 5.5 3.7V20" />
     </svg>
   ),
-  invite: (
+  pending: (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="8" cy="16" r="3" />
-      <circle cx="16" cy="8" r="3" />
-      <path d="m10.2 13.8 3.6-3.6M16 5V3M19 8h2M8 19v2M5 16H3" />
+      <path d="M12 3 4.5 6v5.4c0 4.7 3.1 8.1 7.5 9.6 4.4-1.5 7.5-4.9 7.5-9.6V6L12 3Z" />
+      <path d="M12 8v4l2.5 1.5" />
     </svg>
   ),
 };
@@ -75,7 +70,6 @@ function formatStamp(value: string) {
 export function AdminOverview({
   photos,
   members,
-  invites,
   logs,
   privacyRequests,
   onUpdatePhoto,
@@ -93,9 +87,6 @@ export function AdminOverview({
   );
   const approvedMembers = members.filter(
     (member) => member.status === "approved",
-  ).length;
-  const activeInvites = invites.filter(
-    (invite) => !invite.revokedAt && invite.usedCount < invite.maxUses,
   ).length;
   const pendingPrivacy = privacyRequests.filter(
     (request) => request.status === "pending",
@@ -137,17 +128,17 @@ export function AdminOverview({
             <strong>{approvedMembers}</strong>
             <small>位</small>
           </p>
-          <b>成员</b>
-          <em>{pendingMembers.length} 位等待加入</em>
+          <b>已通过成员</b>
+          <em>可以进入完整相册</em>
         </article>
         <article className="is-blue">
-          <span className="metric-icon">{metricIcons.invite}</span>
+          <span className="metric-icon">{metricIcons.pending}</span>
           <p>
-            <strong>{activeInvites}</strong>
-            <small>个</small>
+            <strong>{pendingMembers.length}</strong>
+            <small>位</small>
           </p>
-          <b>有效邀请</b>
-          <em>可用于邀请新成员</em>
+          <b>待审核成员</b>
+          <em>等待管理员确认身份</em>
         </article>
       </div>
 

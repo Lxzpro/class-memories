@@ -9,10 +9,8 @@ import type { Profile } from "@/types/domain";
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   signUp: vi.fn(),
-  rpc: vi.fn(),
   updateProfile: vi.fn(),
   updateEq: vi.fn(),
-  verifyToken: vi.fn(),
   signToken: vi.fn(),
 }));
 
@@ -26,7 +24,6 @@ vi.mock("@/lib/authz", () => ({
 }));
 vi.mock("@/lib/config", () => ({ DEMO_MODE: false }));
 vi.mock("@/lib/security/tokens", () => ({
-  verifyToken: mocks.verifyToken,
   signToken: mocks.signToken,
 }));
 vi.mock("@/lib/supabase/server", () => ({
@@ -38,7 +35,6 @@ vi.mock("@/lib/supabase/server", () => ({
       })),
     })),
   })),
-  createSupabaseAdminClient: vi.fn(async () => ({ rpc: mocks.rpc })),
 }));
 
 const user: Profile = {
@@ -92,12 +88,10 @@ describe("profile identity routes", () => {
     vi.clearAllMocks();
     mocks.getCurrentUser.mockResolvedValue(user);
     mocks.updateEq.mockResolvedValue({ error: null });
-    mocks.verifyToken.mockReturnValue({ inviteId: "invite-id" });
     mocks.signUp.mockResolvedValue({
       data: { user: { id: "new-user-id" }, session: null },
       error: null,
     });
-    mocks.rpc.mockResolvedValue({ error: null });
   });
 
   it("updates only submitted database-backed profile fields", async () => {
@@ -171,15 +165,12 @@ describe("profile identity routes", () => {
     expect(mocks.updateProfile).not.toHaveBeenCalled();
   });
 
-  it("sends nickname and real name separately to Supabase signup", async () => {
+  it("registers without a class code and sends both names to Supabase", async () => {
     const { POST } = await import("@/app/api/auth/register/route");
     const response = await POST(
       new Request("https://www.lxzblog.click/api/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: "invite_grant=valid-token",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           displayName: "  小夏  ",
           realName: "  夏宁  ",
@@ -199,9 +190,10 @@ describe("profile identity routes", () => {
           "https://www.lxzblog.click/auth/callback?next=/pending",
       },
     });
-    expect(mocks.rpc).toHaveBeenCalledWith("redeem_invite", {
-      p_invite_id: "invite-id",
-      p_user_id: "new-user-id",
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      next: "/pending",
+      emailConfirmationRequired: true,
     });
   });
 
@@ -210,10 +202,7 @@ describe("profile identity routes", () => {
     const response = await POST(
       new Request("http://localhost/api/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: "invite_grant=valid-token",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           displayName: "小夏",
           realName: "",

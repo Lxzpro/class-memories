@@ -17,9 +17,9 @@ export default function Home() {
           <span><b>拾光簿</b><small>OUR CLASS ARCHIVE</small></span>
         </Link>
         <nav className="desktop-nav" aria-label="主导航">
-          <a href="#memories">照片</a><a href="#random">随机回忆</a><Link href="/invite">班级入口</Link>
+          <a href="#memories">照片</a><a href="#random">随机回忆</a><Link href="/login">班级入口</Link>
         </nav>
-        <Link className="header-entry" href="/invite">进入相册 <span aria-hidden="true">↗</span></Link>
+        <Link className="header-entry" href="/login">进入相册 <span aria-hidden="true">↗</span></Link>
       </header>
 
       <section className="hero" aria-labelledby="hero-title">
@@ -28,16 +28,16 @@ export default function Home() {
           <h1 id="hero-title">不必记得<br /><em>是哪一天</em></h1>
           <p className="hero-lead">记得那时候的我们就好。这里收藏教室里的光、操场上的风，还有那些没有写下日期的青春片段。</p>
           <div className="hero-actions" id="random">
-            <Link className="primary-action" href="/invite?next=shuffle">
+            <Link className="primary-action" href="/login">
               <span className="action-icon" aria-hidden="true">↝</span>
               <span><b>洗一洗回忆</b><small>从照片里随机抽一张</small></span>
             </Link>
-            <Link className="secondary-action" href="/invite?next=camera">
+            <Link className="secondary-action" href="/login">
               <span className="camera-dot" aria-hidden="true" />
               <span><b>拍下一刻</b><small>让旧照片重新显影</small></span>
             </Link>
           </div>
-          <p className="privacy-note"><span aria-hidden="true">⌁</span> 仅受邀的班级成员可以浏览完整相册</p>
+          <p className="privacy-note"><span aria-hidden="true">⌁</span> 仅审核通过的班级成员可以浏览完整相册</p>
         </div>
 
         <div className="hero-gallery" aria-label="班级回忆照片预览">
@@ -59,7 +59,7 @@ export default function Home() {
       <section className="memory-preview" id="memories" aria-labelledby="memory-title">
         <div className="section-heading">
           <div><p className="eyebrow"><span /> A GLIMPSE OF US</p><h2 id="memory-title">散落在各处的我们</h2></div>
-          <Link href="/invite?next=photos">查看全部照片 <span aria-hidden="true">→</span></Link>
+          <Link href="/login">查看全部照片 <span aria-hidden="true">→</span></Link>
         </div>
         <div className="preview-grid">
           {previewMemories.map((memory, index) => (
@@ -71,7 +71,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="home-footer"><span>拾光簿 · 我们班的私人影像纪念册</span><span>PRIVATE BY INVITATION</span></footer>
+      <footer className="home-footer"><span>拾光簿 · 我们班的私人影像纪念册</span><span>PRIVATE CLASS ARCHIVE</span></footer>
     </main>
   );
 }

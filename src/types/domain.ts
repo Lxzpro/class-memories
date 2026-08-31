@@ -43,17 +43,6 @@ export interface Photo {
   createdAt: string;
 }
 
-export interface InviteCodeRecord {
-  id: string;
-  codeHash: string;
-  expiresAt: string;
-  maxUses: number;
-  usedCount: number;
-  revokedAt: string | null;
-  createdBy: string;
-  createdAt: string;
-}
-
 export interface PhotoComment {
   id: string;
   photoId: string;

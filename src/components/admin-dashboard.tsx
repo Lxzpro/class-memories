@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AdminOverview } from "@/components/admin-overview";
 import { UserAvatar } from "@/components/user-avatar";
-import type { AdminDashboardData, AdminInviteView } from "@/lib/admin-data";
+import type { AdminDashboardData } from "@/lib/admin-data";
 import { MEDIA_INPUT_ACCEPT, mediaTypeForFile, prepareMedia, validateMediaFile } from "@/lib/client-media";
 import {
   MAX_IMAGE_FILE_SIZE_MB,
@@ -13,7 +13,7 @@ import {
 } from "@/lib/media-limits";
 import type { MediaType, Photo, PhotoVisibility, Profile } from "@/types/domain";
 
-type Tab = "overview" | "upload" | "photos" | "members" | "invites" | "logs";
+type Tab = "overview" | "upload" | "photos" | "members" | "logs";
 type QueueItem = {
   id: string;
   file: File;
@@ -29,18 +29,11 @@ type QueueItem = {
   error?: string;
   retryable?: boolean;
 };
-type InviteCodeState = {
-  code?: string;
-  loading?: boolean;
-  error?: string;
-  copied?: boolean;
-};
 const tabLabels: Record<Tab, string> = {
   overview: "班级回忆管理",
   upload: "批量上传",
   photos: "媒体管理",
   members: "成员审核",
-  invites: "邀请口令",
   logs: "操作记录",
 };
 
@@ -64,32 +57,16 @@ export function AdminDashboard({
   const tab = initialTab as Tab;
   const [photos, setPhotos] = useState(initialData.photos);
   const [members, setMembers] = useState(initialData.members);
-  const [invites, setInvites] = useState(initialData.invites);
   const [privacyRequests, setPrivacyRequests] = useState(
     initialData.privacyRequests,
   );
   const [accessPhotoId, setAccessPhotoId] = useState<string | null>(null);
   const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [inviteCodeStates, setInviteCodeStates] = useState<
-    Record<string, InviteCodeState>
-  >({});
-  const [isCreatingInvite, setIsCreatingInvite] = useState(false);
-  const [inviteCreateError, setInviteCreateError] = useState("");
   const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null);
-  const [inviteForm, setInviteForm] = useState({ validDays: 7, maxUses: 10 });
   const fileInput = useRef<HTMLInputElement>(null);
   const objectUrls = useRef(new Set<string>());
-  const approvedCount = members.filter(
-    (member) => member.status === "approved",
-  ).length;
   const pendingCount = members.filter(
     (member) => member.status === "pending",
-  ).length;
-  const publishedCount = photos.filter(
-    (photo) => photo.reviewStatus === "published",
-  ).length;
-  const draftCount = photos.filter(
-    (photo) => photo.reviewStatus === "draft",
   ).length;
   const memberNames = useMemo(
     () => new Map(members.map((member) => [member.id, adminMemberLabel(member)])),
@@ -439,125 +416,6 @@ export function AdminDashboard({
       setPhotos((current) => current.filter((photo) => photo.id !== id));
   }
 
-  async function createInvite(event: React.FormEvent) {
-    event.preventDefault();
-    setIsCreatingInvite(true);
-    setInviteCreateError("");
-    try {
-      const response = await fetch("/api/admin/invites", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(inviteForm),
-      });
-      const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.invite) {
-        setInviteCreateError(result?.error || "创建邀请失败，请稍后再试。");
-        return;
-      }
-
-      setInviteCodeStates((current) => ({
-        ...current,
-        [result.invite.id]: { code: result.invite.code },
-      }));
-      setInvites((current) => [
-        {
-          id: result.invite.id,
-          codeAvailable: true,
-          expiresAt: result.invite.expiresAt,
-          maxUses: result.invite.maxUses,
-          usedCount: 0,
-          revokedAt: null,
-          createdAt: new Date().toISOString(),
-          redemptions: [],
-        },
-        ...current,
-      ]);
-    } catch {
-      setInviteCreateError("网络连接失败，请稍后再试。");
-    } finally {
-      setIsCreatingInvite(false);
-    }
-  }
-
-  function updateInviteCodeState(id: string, update: InviteCodeState) {
-    setInviteCodeStates((current) => ({
-      ...current,
-      [id]: { ...current[id], ...update },
-    }));
-  }
-
-  async function toggleInviteCode(id: string) {
-    const current = inviteCodeStates[id];
-    if (current?.code) {
-      updateInviteCodeState(id, {
-        code: undefined,
-        copied: false,
-        error: undefined,
-      });
-      return;
-    }
-
-    updateInviteCodeState(id, {
-      loading: true,
-      copied: false,
-      error: undefined,
-    });
-    try {
-      const response = await fetch(
-        "/api/admin/invites/" + encodeURIComponent(id) + "/code",
-        { cache: "no-store" },
-      );
-      const result = await response.json().catch(() => null);
-      if (!response.ok || typeof result?.code !== "string") {
-        updateInviteCodeState(id, {
-          loading: false,
-          error: result?.error || "读取邀请口令失败，请稍后再试。",
-        });
-        return;
-      }
-      updateInviteCodeState(id, {
-        code: result.code,
-        loading: false,
-        error: undefined,
-      });
-    } catch {
-      updateInviteCodeState(id, {
-        loading: false,
-        error: "网络连接失败，请稍后再试。",
-      });
-    }
-  }
-
-  async function copyInviteCode(id: string) {
-    const code = inviteCodeStates[id]?.code;
-    if (!code) return;
-    try {
-      await navigator.clipboard.writeText(code);
-      updateInviteCodeState(id, { copied: true, error: undefined });
-    } catch {
-      updateInviteCodeState(id, {
-        copied: false,
-        error: "复制失败，请长按口令手动复制。",
-      });
-    }
-  }
-
-  async function revokeInvite(id: string) {
-    const response = await fetch(`/api/admin/invites/${id}/revoke`, {
-      method: "POST",
-    });
-    if (response.ok)
-      setInvites((current) =>
-        current.map((invite) =>
-          invite.id === id
-            ? { ...invite, revokedAt: new Date().toISOString() }
-            : invite,
-        ),
-      );
-  }
-
-  const recentPhotos = useMemo(() => photos.slice(0, 6), [photos]);
-
   return (
     <>
       <header className="admin-topbar">
@@ -588,7 +446,6 @@ export function AdminDashboard({
         <AdminOverview
           photos={photos}
           members={members}
-          invites={invites}
           logs={initialData.logs}
           privacyRequests={privacyRequests}
           onUpdatePhoto={updatePhoto}
@@ -596,108 +453,6 @@ export function AdminDashboard({
           onReviewPrivacyRequest={reviewPrivacyRequest}
         />
       )}
-      {false && tab === "overview" && (
-        <section id="overview" className="admin-section">
-          <div className="admin-welcome">
-            <div>
-              <p>下午好，管理员</p>
-              <h2>
-                班级里的回忆，
-                <br />
-                已经有 <em>{publishedCount}</em> 张了。
-              </h2>
-              <span>这里可以安全地上传照片、审核成员和管理邀请。</span>
-            </div>
-            <Link href="/admin?tab=upload" scroll={false}>
-              ＋ 前往批量上传
-            </Link>
-          </div>
-          <div className="admin-metrics">
-            <article>
-              <span>照片</span>
-              <b>{photos.length}</b>
-              <small>
-                {publishedCount} 张已发布 · {draftCount} 份未发布草稿
-              </small>
-            </article>
-            <article>
-              <span>成员</span>
-              <b>{approvedCount}</b>
-              <small>{pendingCount} 人等待审核</small>
-            </article>
-            <article>
-              <span>有效邀请</span>
-              <b>
-                {
-                  invites.filter(
-                    (invite) =>
-                      !invite.revokedAt &&
-                      new Date(invite.expiresAt) > new Date(),
-                  ).length
-                }
-              </b>
-              <small>支持随时撤销</small>
-            </article>
-            <article>
-              <span>存储模式</span>
-              <b className="metric-word">{demoMode ? "MOCK" : "R2"}</b>
-              <small>
-                {demoMode ? "配置密钥后切换 R2" : "Cloudflare 私有存储"}
-              </small>
-            </article>
-          </div>
-          <div className="admin-overview-grid">
-            <article className="overview-panel">
-              <div className="panel-heading">
-                <h3>最近照片</h3>
-                <Link href="/admin?tab=photos" scroll={false}>
-                  管理全部 →
-                </Link>
-              </div>
-              <div className="recent-photo-grid">
-                {recentPhotos.map((photo) => (
-                  <div key={photo.id}>
-                    <Image
-                      src={photo.thumbnailUrl}
-                      alt={photo.title}
-                      fill
-                      sizes="140px"
-                      unoptimized
-                      suppressHydrationWarning
-                    />
-                    <span>{photo.title}</span>
-                  </div>
-                ))}
-              </div>
-            </article>
-            <article className="overview-panel">
-              <div className="panel-heading">
-                <h3>待办事项</h3>
-              </div>
-              <div className="todo-list">
-                <Link href="/admin?tab=members" scroll={false}>
-                  <b>{pendingCount}</b>
-                  <span>位同学等待身份审核</span>
-                  <i>→</i>
-                </Link>
-                <Link href="/admin?tab=members" scroll={false}>
-                  <b>{pendingPrivacyCount}</b>
-                  <span>条隐私申请等待处理</span>
-                  <i>→</i>
-                </Link>
-                <Link href="/admin?tab=upload" scroll={false}>
-                  <b>
-                    {queue.filter((item) => item.status === "ready").length}
-                  </b>
-                  <span>份媒体在上传队列</span>
-                  <i>→</i>
-                </Link>
-              </div>
-            </article>
-          </div>
-        </section>
-      )}
-
       {tab === "upload" && (
         <section id="upload" className="admin-section">
           <div className="section-title">
@@ -1247,159 +1002,6 @@ export function AdminDashboard({
                   ))
                 )}
               </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {tab === "invites" && (
-        <section id="invites" className="admin-section">
-          <div className="section-title">
-            <div>
-              <p>INVITATION ACCESS</p>
-              <h2>邀请口令</h2>
-              <span>口令经加密保存，管理员可随时按需查看和复制。</span>
-            </div>
-          </div>
-          <div className="invite-layout">
-            <form className="invite-creator" onSubmit={createInvite}>
-              <h3>创建一个新邀请</h3>
-              <label>
-                有效天数
-                <input
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={inviteForm.validDays}
-                  onChange={(event) =>
-                    setInviteForm({
-                      ...inviteForm,
-                      validDays: Number(event.target.value),
-                    })
-                  }
-                />
-              </label>
-              <label>
-                最多使用次数
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={inviteForm.maxUses}
-                  onChange={(event) =>
-                    setInviteForm({
-                      ...inviteForm,
-                      maxUses: Number(event.target.value),
-                    })
-                  }
-                />
-              </label>
-              <button type="submit" disabled={isCreatingInvite}>
-                {isCreatingInvite ? "正在生成…" : "生成限时口令"}
-              </button>
-              <p className="invite-creator-note">
-                新口令会以加密密文保存，数据库不会记录明文。
-              </p>
-              {inviteCreateError && (
-                <p className="invite-inline-error" role="alert">
-                  {inviteCreateError}
-                </p>
-              )}
-            </form>
-            <div className="invite-list">
-              {invites.map((invite: AdminInviteView) => {
-                const expired = new Date(invite.expiresAt) < new Date();
-                const codeState = inviteCodeStates[invite.id];
-                const state = invite.revokedAt
-                  ? "已撤销"
-                  : expired
-                    ? "已过期"
-                    : invite.usedCount >= invite.maxUses
-                      ? "已用完"
-                      : "有效";
-                return (
-                  <article key={invite.id}>
-                    <div>
-                      <b>{invite.id.slice(0, 8)}…</b>
-                      <span>
-                        有效至{" "}
-                        {new Date(invite.expiresAt).toLocaleDateString("zh-CN")}
-                      </span>
-                      {invite.redemptions.length > 0 && (
-                        <span>
-                          已使用：
-                          {invite.redemptions
-                            .map((item) => item.name)
-                            .join("、")}
-                        </span>
-                      )}
-                    </div>
-                    <p>
-                      {invite.usedCount} / {invite.maxUses} 次
-                    </p>
-                    <small className={state === "有效" ? "active" : ""}>
-                      {state}
-                    </small>
-                    {state === "有效" && (
-                      <button
-                        type="button"
-                        className="invite-revoke-button"
-                        onClick={() => revokeInvite(invite.id)}
-                      >
-                        撤销
-                      </button>
-                    )}
-                    <div className="invite-code-panel">
-                      <div className="invite-code-value">
-                        <span>邀请口令</span>
-                        <code>
-                          {codeState?.code
-                            ? codeState.code
-                            : invite.codeAvailable
-                              ? "••••••••••••"
-                              : "历史口令不可恢复"}
-                        </code>
-                      </div>
-                      <div className="invite-code-actions">
-                        {invite.codeAvailable && (
-                          <button
-                            type="button"
-                            className="invite-code-button"
-                            aria-expanded={Boolean(codeState?.code)}
-                            disabled={codeState?.loading}
-                            onClick={() => toggleInviteCode(invite.id)}
-                          >
-                            {codeState?.loading
-                              ? "读取中…"
-                              : codeState?.code
-                                ? "隐藏口令"
-                                : "查看口令"}
-                          </button>
-                        )}
-                        {codeState?.code && (
-                          <button
-                            type="button"
-                            className="invite-copy-button"
-                            onClick={() => copyInviteCode(invite.id)}
-                          >
-                            {codeState.copied ? "已复制" : "复制口令"}
-                          </button>
-                        )}
-                      </div>
-                      {!invite.codeAvailable && (
-                        <p className="invite-code-help">
-                          该邀请创建于加密存储升级前，仅保留不可逆哈希。请新建口令替代。
-                        </p>
-                      )}
-                      {codeState?.error && (
-                        <p className="invite-inline-error" role="alert">
-                          {codeState.error}
-                        </p>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
             </div>
           </div>
         </section>

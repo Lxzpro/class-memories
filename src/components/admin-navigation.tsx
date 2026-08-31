@@ -9,7 +9,6 @@ type AdminIconName =
   | "upload"
   | "photos"
   | "members"
-  | "invites"
   | "logs";
 
 const navigation: Array<{
@@ -20,7 +19,6 @@ const navigation: Array<{
   { tab: "upload", label: "批量上传" },
   { tab: "photos", label: "媒体管理" },
   { tab: "members", label: "成员审核" },
-  { tab: "invites", label: "邀请口令" },
   { tab: "logs", label: "操作记录" },
 ];
 
@@ -55,15 +53,6 @@ function AdminIcon({ name }: { name: AdminIconName }) {
         <circle cx="9" cy="8" r="3" />
         <circle cx="17" cy="9" r="2.2" />
         <path d="M3.5 20v-1.5A4.5 4.5 0 0 1 8 14h2a4.5 4.5 0 0 1 4.5 4.5V20M15 14.5a4 4 0 0 1 5.5 3.7V20" />
-      </svg>
-    );
-  }
-  if (name === "invites") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="8" cy="16" r="3" />
-        <circle cx="16" cy="8" r="3" />
-        <path d="m10.2 13.8 3.6-3.6M16 5V3M19 8h2M8 19v2M5 16H3" />
       </svg>
     );
   }
